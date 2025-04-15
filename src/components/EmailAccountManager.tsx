@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,20 +32,22 @@ export function EmailAccountManager() {
 
   const handleAddAccount = async () => {
     try {
+      // Based on the database schema, only include properties that exist in the table
       const { data, error } = await supabase
         .from('email_accounts')
         .insert({
           provider: provider,
           email: email,
-          auth_type: connectionType,
-          host: connectionType === 'basic' ? host : null,
-          port: connectionType === 'basic' ? parseInt(port) : null,
-          username: connectionType === 'basic' ? username : null,
-          password: connectionType === 'basic' ? password : null,
-          smtp_host: null,
-          smtp_port: null,
-          smtp_username: null,
-          smtp_password: null
+          // Store connection details in access_token as JSON for basic auth
+          access_token: connectionType === 'basic' ? JSON.stringify({
+            auth_type: 'basic',
+            host,
+            port: port ? parseInt(port) : null,
+            username,
+            password
+          }) : null,
+          // We'll need to implement OAuth2 flow to get these tokens
+          refresh_token: null
         });
 
       if (error) throw error;
