@@ -12,9 +12,10 @@ import { EmailFolderList } from './EmailFolderList';
 
 interface EmailAccountsListProps {
   accounts: EmailAccount[];
+  isLoading?: boolean;
 }
 
-export function EmailAccountsList({ accounts }: EmailAccountsListProps) {
+export function EmailAccountsList({ accounts, isLoading = false }: EmailAccountsListProps) {
   const { syncAccount, syncFolders, isSyncing } = useEmailSync();
 
   if (!accounts || accounts.length === 0) {

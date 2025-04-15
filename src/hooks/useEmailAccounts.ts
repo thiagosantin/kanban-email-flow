@@ -17,7 +17,11 @@ export function useEmailAccounts() {
         throw error;
       }
 
-      return data as EmailAccount[];
+      // Convert the Supabase result to the correct type
+      return (data as any[]).map(account => ({
+        ...account,
+        folders: Array.isArray(account.folders) ? account.folders : []
+      })) as EmailAccount[];
     }
   });
 
