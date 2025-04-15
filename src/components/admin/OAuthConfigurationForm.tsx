@@ -2,6 +2,7 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { Check, Loader2, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +34,7 @@ interface OAuthConfigurationFormProps {
 }
 
 export function OAuthConfigurationForm({ provider, config, onSuccess }: OAuthConfigurationFormProps) {
+  const [isValidating, setIsValidating] = React.useState(false);
   const form = useForm<OAuthConfigFormData>({
     defaultValues: {
       clientId: config?.client_id || '',
@@ -62,6 +64,40 @@ export function OAuthConfigurationForm({ provider, config, onSuccess }: OAuthCon
     } catch (error) {
       console.error('Error saving OAuth config:', error);
       toast.error('Failed to save OAuth configuration');
+    }
+  };
+
+  const validateConfiguration = async () => {
+    const formData = form.getValues();
+    
+    // Basic validation first
+    if (!formData.clientId || !formData.clientSecret || !formData.redirectUri) {
+      toast.error('Please fill in all fields before testing');
+      return;
+    }
+
+    setIsValidating(true);
+    
+    try {
+      // Save configuration first
+      await onSubmit(formData);
+
+      // Here we would typically make a test request to validate the OAuth configuration
+      // For now, we'll just check if the values are present and well-formed
+      const isValidClientId = formData.clientId.length > 10;
+      const isValidClientSecret = formData.clientSecret.length > 10;
+      const isValidRedirectUri = formData.redirectUri.startsWith('http');
+
+      if (isValidClientId && isValidClientSecret && isValidRedirectUri) {
+        toast.success('OAuth configuration appears valid');
+      } else {
+        toast.error('Invalid configuration format. Please check your credentials.');
+      }
+    } catch (error) {
+      console.error('Error validating OAuth config:', error);
+      toast.error('Failed to validate OAuth configuration');
+    } finally {
+      setIsValidating(false);
     }
   };
 
@@ -113,9 +149,24 @@ export function OAuthConfigurationForm({ provider, config, onSuccess }: OAuthCon
           )}
         />
 
-        <Button type="submit" className="w-full">
-          Save Configuration
-        </Button>
+        <div className="flex gap-2">
+          <Button type="submit" className="flex-1">
+            Save Configuration
+          </Button>
+          <Button 
+            type="button" 
+            variant="outline"
+            onClick={validateConfiguration}
+            disabled={isValidating}
+          >
+            {isValidating ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Zap className="h-4 w-4 mr-2" />
+            )}
+            Test Configuration
+          </Button>
+        </div>
       </form>
     </Form>
   );
