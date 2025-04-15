@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,6 +10,7 @@ import { SystemErrorList } from "@/components/admin/SystemErrorList";
 import { AccountsList } from "@/components/admin/AccountsList";
 import { SystemMetrics } from "@/components/admin/SystemStats";
 import { useAdminData } from "@/hooks/useAdminData";
+import { toast } from "react-toastify";
 
 const formatDateTime = (dateString: string | null) => {
   if (!dateString) return "N/A";
@@ -33,6 +34,20 @@ const SuperAdmin = () => {
     fetchData,
     handleTaskAction
   } = useAdminData();
+
+  const assignAdmin = async () => {
+    try {
+      await assignAdminToEmail('thiagoaosantos@outlook.com');
+      toast.success('Permissão de administrador concedida com sucesso');
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Erro ao conceder permissão de administrador');
+    }
+  };
+
+  useEffect(() => {
+    assignAdmin();
+  }, []);
 
   return (
     <SidebarProvider>
