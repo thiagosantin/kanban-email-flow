@@ -32,6 +32,7 @@ export function EmailAccountManager() {
 
   const handleAddAccount = async () => {
     try {
+      // Using from() instead of rpc() for the add_email_account function
       const { data, error } = await supabase.rpc('add_email_account', {
         p_provider: provider,
         p_email: email,
