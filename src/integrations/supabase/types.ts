@@ -9,16 +9,128 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      email_accounts: {
+        Row: {
+          access_token: string | null
+          created_at: string | null
+          email: string
+          id: string
+          provider: string
+          refresh_token: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          provider: string
+          refresh_token?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          provider?: string
+          refresh_token?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      emails: {
+        Row: {
+          account_id: string | null
+          content: string | null
+          created_at: string | null
+          date: string
+          external_id: string
+          flagged: boolean | null
+          from_email: string
+          from_name: string | null
+          id: string
+          preview: string | null
+          read: boolean | null
+          status: Database["public"]["Enums"]["email_status"] | null
+          subject: string
+          updated_at: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          content?: string | null
+          created_at?: string | null
+          date: string
+          external_id: string
+          flagged?: boolean | null
+          from_email: string
+          from_name?: string | null
+          id?: string
+          preview?: string | null
+          read?: boolean | null
+          status?: Database["public"]["Enums"]["email_status"] | null
+          subject: string
+          updated_at?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          content?: string | null
+          created_at?: string | null
+          date?: string
+          external_id?: string
+          flagged?: boolean | null
+          from_email?: string
+          from_name?: string | null
+          id?: string
+          preview?: string | null
+          read?: boolean | null
+          status?: Database["public"]["Enums"]["email_status"] | null
+          subject?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emails_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "email_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_email_status: {
+        Args: {
+          email_id: string
+          new_status: Database["public"]["Enums"]["email_status"]
+        }
+        Returns: {
+          account_id: string | null
+          content: string | null
+          created_at: string | null
+          date: string
+          external_id: string
+          flagged: boolean | null
+          from_email: string
+          from_name: string | null
+          id: string
+          preview: string | null
+          read: boolean | null
+          status: Database["public"]["Enums"]["email_status"] | null
+          subject: string
+          updated_at: string | null
+        }
+      }
     }
     Enums: {
-      [_ in never]: never
+      email_status: "inbox" | "awaiting" | "processing" | "done"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +245,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      email_status: ["inbox", "awaiting", "processing", "done"],
+    },
   },
 } as const

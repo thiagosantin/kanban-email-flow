@@ -1,112 +1,24 @@
-
 import { useState } from "react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Inbox, Loader2, Mail, MoreHorizontal, Star, Trash } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { KanbanHeader } from "@/components/KanbanHeader";
 import { EmailCard } from "@/components/EmailCard";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
-
-// Dados de exemplo para os emails
-const initialEmails = {
-  inbox: [
-    {
-      id: "email-1",
-      from: "marketing@empresa.com",
-      subject: "Oferta Especial para Você!",
-      preview: "Descubra nossas ofertas exclusivas de final de semana...",
-      date: "10:30 AM",
-      read: false,
-      flagged: false,
-      avatar: "",
-    },
-    {
-      id: "email-2",
-      from: "equipe@projeto.com",
-      subject: "Atualização do Status do Projeto",
-      preview: "Estamos no caminho certo para cumprir o prazo. A entrega está...",
-      date: "Ontem",
-      read: true,
-      flagged: true,
-      avatar: "",
-    },
-    {
-      id: "email-3",
-      from: "newsletter@tecnologia.com",
-      subject: "Novidades Tecnológicas da Semana",
-      preview: "Confira as tendências mais recentes no mundo da tecnologia...",
-      date: "23 Abr",
-      read: false,
-      flagged: false,
-      avatar: "",
-    },
-  ],
-  awaiting: [
-    {
-      id: "email-4",
-      from: "recursos@empresa.com",
-      subject: "Seu pedido de recursos foi aprovado",
-      preview: "Temos o prazer de informar que seu pedido de recursos adicionais foi...",
-      date: "22 Abr",
-      read: true,
-      flagged: false,
-      avatar: "",
-    },
-  ],
-  processing: [
-    {
-      id: "email-5",
-      from: "joao.silva@parceiro.com",
-      subject: "Re: Proposta de Colaboração",
-      preview: "Obrigado pelo seu e-mail. Estou analisando a proposta e...",
-      date: "20 Abr",
-      read: true,
-      flagged: true,
-      avatar: "",
-    },
-  ],
-  done: [
-    {
-      id: "email-6",
-      from: "sistema@pagamentos.com",
-      subject: "Confirmação de Pagamento",
-      preview: "Seu pagamento foi processado com sucesso. O valor de R$...",
-      date: "15 Abr",
-      read: true,
-      flagged: false,
-      avatar: "",
-    },
-    {
-      id: "email-7",
-      from: "notificacao@plataforma.com",
-      subject: "Sua assinatura foi renovada",
-      preview: "Informamos que sua assinatura mensal foi renovada automaticamente...",
-      date: "10 Abr",
-      read: true,
-      flagged: false,
-      avatar: "",
-    },
-  ],
-};
+import { useEmails } from "@/hooks/useEmails";
+import type { EmailStatus } from "@/types/email";
 
 const Dashboard = () => {
-  const [emails, setEmails] = useState(initialEmails);
-  const [loading, setLoading] = useState(false);
+  const { emails, isLoading, updateEmailStatus } = useEmails();
   const navigate = useNavigate();
 
   const handleDragEnd = (result: any) => {
     const { destination, source, draggableId } = result;
 
-    // Se não tiver destino, cancela
-    if (!destination) {
-      return;
-    }
+    if (!destination) return;
 
-    // Se a origem e o destino forem o mesmo, cancela
     if (
       destination.droppableId === source.droppableId &&
       destination.index === source.index
@@ -114,33 +26,9 @@ const Dashboard = () => {
       return;
     }
 
-    // Origem e colunas de destino
-    const sourceColumn = emails[source.droppableId as keyof typeof emails];
-    const destColumn = emails[destination.droppableId as keyof typeof emails];
-
-    // Se for a mesma coluna
-    if (source.droppableId === destination.droppableId) {
-      const newEmails = Array.from(sourceColumn);
-      const [removed] = newEmails.splice(source.index, 1);
-      newEmails.splice(destination.index, 0, removed);
-
-      setEmails({
-        ...emails,
-        [source.droppableId]: newEmails,
-      });
-      return;
-    }
-
-    // Se for uma coluna diferente
-    const sourceEmails = Array.from(sourceColumn);
-    const destEmails = Array.from(destColumn);
-    const [removed] = sourceEmails.splice(source.index, 1);
-    destEmails.splice(destination.index, 0, removed);
-
-    setEmails({
-      ...emails,
-      [source.droppableId]: sourceEmails,
-      [destination.droppableId]: destEmails,
+    updateEmailStatus({
+      emailId: draggableId,
+      newStatus: destination.droppableId as EmailStatus
     });
   };
 
@@ -153,7 +41,7 @@ const Dashboard = () => {
           <KanbanHeader />
           
           <div className="p-4 md:p-6 flex-1 overflow-x-auto">
-            {loading ? (
+            {isLoading ? (
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="h-8 w-8 text-kanban-blue animate-spin" />
                 <span className="ml-2 text-lg text-kanban-gray-600">Carregando emails...</span>
