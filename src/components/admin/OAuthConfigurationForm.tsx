@@ -1,9 +1,9 @@
-
 import React from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Check, Loader2, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { validateOAuthConfig } from "@/utils/oauthValidation";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -70,7 +70,6 @@ export function OAuthConfigurationForm({ provider, config, onSuccess }: OAuthCon
   const validateConfiguration = async () => {
     const formData = form.getValues();
     
-    // Basic validation first
     if (!formData.clientId || !formData.clientSecret || !formData.redirectUri) {
       toast.error('Please fill in all fields before testing');
       return;
@@ -82,16 +81,18 @@ export function OAuthConfigurationForm({ provider, config, onSuccess }: OAuthCon
       // Save configuration first
       await onSubmit(formData);
 
-      // Here we would typically make a test request to validate the OAuth configuration
-      // For now, we'll just check if the values are present and well-formed
-      const isValidClientId = formData.clientId.length > 10;
-      const isValidClientSecret = formData.clientSecret.length > 10;
-      const isValidRedirectUri = formData.redirectUri.startsWith('http');
+      // Validate the configuration
+      const validationResult = await validateOAuthConfig(
+        provider,
+        formData.clientId,
+        formData.clientSecret,
+        formData.redirectUri
+      );
 
-      if (isValidClientId && isValidClientSecret && isValidRedirectUri) {
-        toast.success('OAuth configuration appears valid');
+      if (validationResult.isValid) {
+        toast.success('OAuth configuration validated successfully');
       } else {
-        toast.error('Invalid configuration format. Please check your credentials.');
+        toast.error(validationResult.error || 'Failed to validate OAuth configuration');
       }
     } catch (error) {
       console.error('Error validating OAuth config:', error);
