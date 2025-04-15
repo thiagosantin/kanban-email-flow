@@ -21,6 +21,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useNavigate } from "react-router-dom";
 import { EmailAccountManager } from "@/components/EmailAccountManager";
+import { EmailConnectionDialog } from "@/components/EmailConnectionDialog";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -56,22 +57,22 @@ const Settings = () => {
           </header>
           
           <div className="p-4 md:p-6 flex-1">
-            <Tabs defaultValue="account" className="w-full">
+            <Tabs defaultValue="emails" className="w-full">
               <div className="flex border-b overflow-x-auto">
                 <TabsList className="bg-transparent h-auto p-0">
+                  <TabsTrigger 
+                    value="emails" 
+                    className="py-3 px-4 border-b-2 data-[state=active]:border-kanban-blue data-[state=active]:text-kanban-blue rounded-none"
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Contas de Email
+                  </TabsTrigger>
                   <TabsTrigger 
                     value="account" 
                     className="py-3 px-4 border-b-2 data-[state=active]:border-kanban-blue data-[state=active]:text-kanban-blue rounded-none"
                   >
                     <User className="h-4 w-4 mr-2" />
                     Conta
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="emails" 
-                    className="py-3 px-4 border-b-2 data-[state=active]:border-kanban-blue data-[state=active]:text-kanban-blue rounded-none"
-                  >
-                    <Mail className="h-4 w-4 mr-2" />
-                    E-mails
                   </TabsTrigger>
                   <TabsTrigger 
                     value="notifications" 
@@ -96,6 +97,15 @@ const Settings = () => {
                   </TabsTrigger>
                 </TabsList>
               </div>
+              
+              <TabsContent value="emails" className="mt-6">
+                <div className="bg-white rounded-lg shadow-sm border border-kanban-gray-200 p-6">
+                  <h2 className="text-xl font-semibold mb-6">Contas de Email Conectadas</h2>
+                  <div className="space-y-4">
+                    <EmailConnectionDialog />
+                  </div>
+                </div>
+              </TabsContent>
               
               <TabsContent value="account" className="mt-6">
                 <div className="bg-white rounded-lg shadow-sm border border-kanban-gray-200 p-6">
@@ -161,16 +171,6 @@ const Settings = () => {
                         </>
                       )}
                     </Button>
-                  </div>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="emails" className="mt-6">
-                <div className="bg-white rounded-lg shadow-sm border border-kanban-gray-200 p-6">
-                  <h2 className="text-xl font-semibold mb-6">Contas de Email Conectadas</h2>
-                  
-                  <div className="space-y-4">
-                    <EmailAccountManager />
                   </div>
                 </div>
               </TabsContent>
