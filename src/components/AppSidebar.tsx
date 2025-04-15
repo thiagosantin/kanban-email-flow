@@ -26,12 +26,11 @@ import {
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Link, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect } from "react";
+import { useAdminStatus } from "@/hooks/useAdminStatus";
 
 export function AppSidebar() {
   const navigate = useNavigate();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isAdmin } = useAdminStatus();
   
   // Items de menu principal
   const mainItems = [
@@ -82,23 +81,6 @@ export function AppSidebar() {
       color: "text-blue-500"
     }
   ];
-
-  useEffect(() => {
-    const checkAdminAccess = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        // In a real app, replace this with a proper role check from your auth system
-        if (user) {
-          setIsAdmin(true);
-        }
-      } catch (error) {
-        console.error("Error checking admin status:", error);
-      }
-    };
-
-    checkAdminAccess();
-  }, []);
 
   return (
     <Sidebar>
