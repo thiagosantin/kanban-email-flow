@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +20,7 @@ import {
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useNavigate } from "react-router-dom";
+import { EmailAccountManager } from "@/components/EmailAccountManager";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -170,59 +170,7 @@ const Settings = () => {
                   <h2 className="text-xl font-semibold mb-6">Contas de Email Conectadas</h2>
                   
                   <div className="space-y-4">
-                    <div className="border rounded-lg p-4 flex justify-between items-center">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-4">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M22 6C22 4.9 21.1 4 20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6ZM20 6L12 11L4 6H20ZM20 18H4V8L12 13L20 8V18Z" fill="#EA4335"/>
-                          </svg>
-                        </div>
-                        <div>
-                          <h3 className="font-medium">Gmail - Pessoal</h3>
-                          <p className="text-sm text-kanban-gray-500">joao.silva@gmail.com</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center">
-                        <Button variant="ghost" size="sm" className="text-red-500 mr-2">
-                          <Trash className="h-4 w-4 mr-1" />
-                          Desconectar
-                        </Button>
-                        <div className="flex items-center space-x-2">
-                          <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                          <span className="text-sm text-green-600">Conectado</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="border rounded-lg p-4 flex justify-between items-center">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-4">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M21 4H3C1.9 4 1 4.9 1 6V18C1 19.1 1.9 20 3 20H21C22.1 20 23 19.1 23 18V6C23 4.9 22.1 4 21 4ZM21 18H3V6H21V18Z" fill="#0078D4"/>
-                            <path d="M12 10L3 6V18L12 14V10Z" fill="#0078D4"/>
-                          </svg>
-                        </div>
-                        <div>
-                          <h3 className="font-medium">Outlook - Trabalho</h3>
-                          <p className="text-sm text-kanban-gray-500">joao.silva@empresa.com</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center">
-                        <Button variant="ghost" size="sm" className="text-red-500 mr-2">
-                          <Trash className="h-4 w-4 mr-1" />
-                          Desconectar
-                        </Button>
-                        <div className="flex items-center space-x-2">
-                          <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                          <span className="text-sm text-green-600">Conectado</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <Button className="w-full mt-4 bg-white text-kanban-blue border border-kanban-blue hover:bg-kanban-blue/10">
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Conectar Nova Conta
-                    </Button>
+                    <EmailAccountManager />
                   </div>
                 </div>
               </TabsContent>
