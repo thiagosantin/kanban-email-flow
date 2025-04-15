@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,13 +31,19 @@ export function EmailAccountManager() {
 
   const handleAddAccount = async () => {
     try {
-      // Based on the database schema, only include properties that exist in the table
+      const { data: authData } = await supabase.auth.getUser();
+      
+      if (!authData?.user) {
+        toast.error('You must be logged in to add an email account');
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('email_accounts')
         .insert({
+          user_id: authData.user.id,
           provider: provider,
           email: email,
-          // Store connection details in access_token as JSON for basic auth
           access_token: connectionType === 'basic' ? JSON.stringify({
             auth_type: 'basic',
             host,
@@ -46,7 +51,6 @@ export function EmailAccountManager() {
             username,
             password
           }) : null,
-          // We'll need to implement OAuth2 flow to get these tokens
           refresh_token: null
         });
 
