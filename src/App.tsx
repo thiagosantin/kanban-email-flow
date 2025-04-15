@@ -14,6 +14,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import About from "./pages/About";
 import Settings from "./pages/Settings";
+import SuperAdmin from "./pages/SuperAdmin";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ const App = () => {
             <Route path="/dashboard" element={session ? <Dashboard /> : <Navigate to="/auth" />} />
             <Route path="/about" element={<About />} />
             <Route path="/settings" element={session ? <Settings /> : <Navigate to="/auth" />} />
+            <Route path="/admin" element={session ? <SuperAdmin /> : <Navigate to="/auth" />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
