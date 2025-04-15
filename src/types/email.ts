@@ -1,11 +1,11 @@
 
 export interface EmailAccount {
   id: string;
-  provider: 'gmail' | 'outlook' | 'custom';
+  provider: string;
   email: string;
   created_at: string;
   updated_at: string;
-  auth_type: 'oauth2' | 'basic';
+  auth_type: 'oauth2' | 'basic' | 'imap' | 'pop3';
   host?: string | null;
   port?: number | null;
   username?: string | null;
@@ -14,6 +14,10 @@ export interface EmailAccount {
   smtp_port?: number | null;
   smtp_username?: string | null;
   smtp_password?: string | null;
+  last_synced?: string | null;
+  sync_interval_minutes?: number;
+  access_token?: string | null;
+  refresh_token?: string | null;
 }
 
 export type EmailStatus = 'inbox' | 'awaiting' | 'processing' | 'done';

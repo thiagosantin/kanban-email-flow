@@ -23,7 +23,7 @@ export function KanbanHeader({ children }: { children?: React.ReactNode }) {
           .select('*');
           
         if (error) throw error;
-        setAccounts(data || []);
+        setAccounts(data as EmailAccount[] || []);
       } catch (error: any) {
         console.error('Error fetching accounts:', error.message);
       } finally {

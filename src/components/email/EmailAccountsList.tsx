@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,7 +63,7 @@ export function EmailAccountsList() {
         .order('created_at', { ascending: false });
         
       if (error) throw error;
-      setAccounts(data || []);
+      setAccounts(data as EmailAccount[] || []);
     } catch (error: any) {
       toast.error('Failed to load email accounts: ' + error.message);
     } finally {
@@ -120,7 +119,7 @@ export function EmailAccountsList() {
     }
   };
 
-  const formatLastSynced = (lastSynced: string | null) => {
+  const formatLastSynced = (lastSynced: string | null | undefined) => {
     if (!lastSynced) return 'Never synced';
     
     try {
