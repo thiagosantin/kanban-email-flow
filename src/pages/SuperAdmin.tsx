@@ -1,3 +1,4 @@
+
 import React from "react";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,20 @@ import { TaskList } from "@/components/admin/TaskList";
 import { SystemErrorList } from "@/components/admin/SystemErrorList";
 import { useAdminData } from "@/hooks/useAdminData";
 import { Separator } from "@/components/ui/separator";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { EmailAccount } from "@/types/email";
+
+const formatDateTime = (dateString: string | null) => {
+  if (!dateString) return "N/A";
+  return new Date(dateString).toLocaleString('pt-BR', { 
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
 
 const SuperAdmin = () => {
   const {
@@ -95,7 +110,7 @@ const SuperAdmin = () => {
                               </TableCell>
                             </TableRow>
                           ) : (
-                            accounts.map((account) => (
+                            accounts.map((account: EmailAccount) => (
                               <TableRow key={account.id}>
                                 <TableCell className="font-medium">{account.email}</TableCell>
                                 <TableCell>{account.provider}</TableCell>
