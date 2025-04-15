@@ -1,16 +1,15 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
 import { 
-  Activity, 
-  Clock, 
-  Database, 
-  LayoutDashboard, 
-  Mail,
-  Server, 
-  Settings, 
-  Users, 
-  Zap,
-  ShieldAlert 
+  Archive, 
+  Calendar, 
+  Cog, 
+  Inbox, 
+  Mail, 
+  MessageSquare, 
+  Plus, 
+  Send, 
+  Shield, 
+  Star, 
+  Trash 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,78 +25,98 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
-import { useAdminStatus } from "@/hooks/useAdminStatus";
+import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 
 export function AppSidebar() {
   const navigate = useNavigate();
-  const { isAdmin } = useAdminStatus();
+  const [isAdmin, setIsAdmin] = useState(false);
   
-  // Items do menu principal
+  // Items de menu principal
   const mainItems = [
     {
-      title: "Dashboard",
-      icon: LayoutDashboard,
-      url: "/dashboard",
-      badge: null
+      title: "Caixa de Entrada",
+      icon: Inbox,
+      unread: 3,
+      url: "/dashboard"
     },
     {
-      title: "Tarefas & Cron",
-      icon: Clock,
-      url: "/tasks",
-      badge: 3
+      title: "Enviados",
+      icon: Send,
+      unread: 0,
+      url: "/dashboard"
     },
     {
-      title: "Usuários",
-      icon: Users,
-      url: "/users",
-      badge: null
+      title: "Favoritos",
+      icon: Star,
+      unread: 0, 
+      url: "/dashboard"
     },
     {
-      title: "Banco de Dados",
-      icon: Database,
-      url: "/database",
-      badge: null
+      title: "Arquivados",
+      icon: Archive,
+      unread: 0,
+      url: "/dashboard"
     },
     {
-      title: "Servidor",
-      icon: Server, 
-      url: "/server",
-      badge: null
+      title: "Lixeira",
+      icon: Trash,
+      unread: 0,
+      url: "/dashboard"
     }
   ];
 
-  // Items do menu de ferramentas
-  const toolItems = [
+  // Itens de menu de contas conectadas
+  const accountItems = [
     {
-      title: "Email Sync",
+      title: "Gmail - Pessoal",
       icon: Mail,
-      url: "/email-sync",
-      badge: null
+      url: "/dashboard",
+      color: "text-red-500"
     },
     {
-      title: "Background Jobs",
-      icon: Zap,
-      url: "/background-jobs",
-      badge: 2
-    },
-    {
-      title: "Atividade",
-      icon: Activity,
-      url: "/activity",
-      badge: null
+      title: "Outlook - Trabalho",
+      icon: Mail,
+      url: "/dashboard",
+      color: "text-blue-500"
     }
   ];
+
+  useEffect(() => {
+    const checkAdminAccess = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        // In a real app, replace this with a proper role check from your auth system
+        if (user) {
+          setIsAdmin(true);
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+      }
+    };
+
+    checkAdminAccess();
+  }, []);
 
   return (
     <Sidebar>
       <SidebarHeader className="flex items-center h-16 px-4">
         <h2 className="text-xl font-bold flex items-center">
-          <Server className="h-6 w-6 text-kanban-blue mr-2" />
-          Admin Painel
+          <Mail className="h-6 w-6 text-kanban-blue mr-2" />
+          Email Kanban
         </h2>
       </SidebarHeader>
       
       <SidebarContent>
+        <div className="px-3 mb-4">
+          <Button className="w-full bg-kanban-blue hover:bg-kanban-blue/90">
+            <Plus className="h-4 w-4 mr-2" />
+            Compor
+          </Button>
+        </div>
+        
         <SidebarGroup>
           <SidebarGroupLabel>Principal</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -105,20 +124,17 @@ export function AppSidebar() {
               {mainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <div 
-                      onClick={() => navigate(item.url)}
-                      className="flex justify-between cursor-pointer"
-                    >
+                    <Link to={item.url} className="flex justify-between">
                       <div className="flex items-center">
                         <item.icon className="h-5 w-5 mr-3" />
                         <span>{item.title}</span>
                       </div>
-                      {item.badge && (
+                      {item.unread > 0 && (
                         <Badge className="bg-kanban-blue text-white ml-2">
-                          {item.badge}
+                          {item.unread}
                         </Badge>
                       )}
-                    </div>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -127,63 +143,64 @@ export function AppSidebar() {
         </SidebarGroup>
         
         <SidebarGroup>
-          <SidebarGroupLabel>Ferramentas</SidebarGroupLabel>
+          <SidebarGroupLabel>Contas Conectadas</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {toolItems.map((item) => (
+              {accountItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <div 
-                      onClick={() => navigate(item.url)}
-                      className="flex justify-between cursor-pointer"
-                    >
-                      <div className="flex items-center">
-                        <item.icon className="h-5 w-5 mr-3" />
-                        <span>{item.title}</span>
-                      </div>
-                      {item.badge && (
-                        <Badge className="bg-red-500 text-white ml-2">
-                          {item.badge}
-                        </Badge>
-                      )}
-                    </div>
+                    <Link to={item.url}>
+                      <item.icon className={`h-5 w-5 mr-3 ${item.color}`} />
+                      <span>{item.title}</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        
+        <SidebarGroup>
+          <SidebarGroupLabel>Apps</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/dashboard">
+                    <Calendar className="h-5 w-5 mr-3" />
+                    <span>Calendário</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/dashboard">
+                    <MessageSquare className="h-5 w-5 mr-3" />
+                    <span>Chat</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              
+              {isAdmin && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link to="/admin" className="flex items-center">
+                      <Shield className="h-5 w-5 mr-3 text-red-500" />
+                      <span>Painel Admin</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
       
       <SidebarFooter>
-        <Button 
-          variant="ghost" 
-          className="w-full justify-start" 
-          onClick={() => navigate("/dashboard")}
-        >
-          <Mail className="h-5 w-5 mr-3" />
-          <span>Voltar para Email</span>
-        </Button>
-        
-        <Button 
-          variant="ghost" 
-          className="w-full justify-start" 
-          onClick={() => navigate("/settings")}
-        >
-          <Settings className="h-5 w-5 mr-3" />
+        <Button variant="ghost" className="w-full justify-start" onClick={() => navigate("/settings")}>
+          <Cog className="h-5 w-5 mr-3" />
           <span>Configurações</span>
         </Button>
-
-        {isAdmin && (
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start" 
-            onClick={() => navigate("/admin")}
-          >
-            <ShieldAlert className="h-5 w-5 mr-3 text-blue-500" />
-            <span>Super Admin</span>
-          </Button>
-        )}
       </SidebarFooter>
     </Sidebar>
   );

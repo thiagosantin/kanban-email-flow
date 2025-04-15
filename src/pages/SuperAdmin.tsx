@@ -1,55 +1,288 @@
 
-import React, { useEffect } from "react";
-import { RefreshCw } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { 
+  Activity, 
+  Clock, 
+  Database, 
+  LayoutDashboard, 
+  Server, 
+  Settings, 
+  Users, 
+  Zap,
+  PlayCircle,
+  PauseCircle,
+  RefreshCw,
+  Trash,
+  AlertTriangle
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
+import { 
+  Tabs, 
+  TabsContent, 
+  TabsList, 
+  TabsTrigger 
+} from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import { toast } from "sonner";
+import { EmailAccount } from "@/types/email";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { SuperAdminSidebar } from "@/components/SuperAdminSidebar";
-import { AdminStats } from "@/components/admin/AdminStats";
-import { TaskList } from "@/components/admin/TaskList";
-import { SystemErrorList } from "@/components/admin/SystemErrorList";
-import { AccountsList } from "@/components/admin/AccountsList";
-import { SystemMetrics } from "@/components/admin/SystemStats";
-import { useAdminData } from "@/hooks/useAdminData";
-import { toast } from "sonner";
-import { assignAdminToEmail } from "@/utils/adminUtils";
 
-const formatDateTime = (dateString: string | null) => {
-  if (!dateString) return "N/A";
-  return new Date(dateString).toLocaleString('pt-BR', { 
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+type Task = {
+  id: string;
+  name: string;
+  status: "running" | "paused" | "failed" | "completed";
+  type: "sync" | "cron" | "background";
+  created_at: string;
+  updated_at: string;
+  owner_id: string;
+  owner_email: string;
+  last_run: string | null;
+  next_run: string | null;
+  frequency: string;
+  error?: string | null;
+};
+
+type SystemStats = {
+  activeUsers: number;
+  totalTasks: number;
+  activeTasks: number;
+  failedTasks: number;
+  emailAccounts: number;
+  avgSyncTime: number;
 };
 
 const SuperAdmin = () => {
-  const {
-    tasks,
-    accounts,
-    stats,
-    errors,
-    loading,
-    actionLoading,
-    fetchData,
-    handleTaskAction
-  } = useAdminData();
+  const navigate = useNavigate();
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [accounts, setAccounts] = useState<EmailAccount[]>([]);
+  const [stats, setStats] = useState<SystemStats>({
+    activeUsers: 0,
+    totalTasks: 0,
+    activeTasks: 0,
+    failedTasks: 0,
+    emailAccounts: 0,
+    avgSyncTime: 2.3, // Example default value
+  });
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
 
-  const assignAdmin = async () => {
+  useEffect(() => {
+    const checkAdminAccess = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error("Acesso não autorizado");
+        navigate("/auth");
+        return;
+      }
+      
+      // In a real app, you'd check if user has admin role
+      // This is a placeholder implementation
+      const { data, error } = await supabase
+        .from('email_accounts')
+        .select('email')
+        .eq('user_id', user.id)
+        .single();
+        
+      if (error || !data) {
+        toast.error("Acesso não autorizado");
+        navigate("/dashboard");
+        return;
+      }
+      
+      // For demo purposes, considering any logged in user as admin
+      // In production, you'd have a proper role-based check
+      fetchData();
+    };
+    
+    checkAdminAccess();
+  }, [navigate]);
+
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      await assignAdminToEmail('thiagoaosantos@outlook.com');
-      toast.success('Permissão de administrador concedida com sucesso');
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('Erro ao conceder permissão de administrador');
+      // Fetch email accounts
+      const { data: accountsData, error: accountsError } = await supabase
+        .from('email_accounts')
+        .select('*');
+        
+      if (accountsError) throw accountsError;
+      
+      const emailAccounts = accountsData as EmailAccount[] || [];
+      setAccounts(emailAccounts);
+      
+      // Fetch tasks (mock data for now, would be a real table in production)
+      // In a real implementation, this would come from a tasks table
+      const mockTasks: Task[] = [
+        {
+          id: "1",
+          name: "Email Sync - Gmail",
+          status: "running",
+          type: "sync",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          owner_id: "user1",
+          owner_email: "user@example.com",
+          last_run: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+          next_run: new Date(Date.now() + 1000 * 60 * 15).toISOString(),
+          frequency: "15min"
+        },
+        {
+          id: "2",
+          name: "Email Sync - Outlook",
+          status: "failed",
+          type: "sync",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          owner_id: "user2",
+          owner_email: "another@example.com",
+          last_run: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+          next_run: new Date(Date.now() + 1000 * 60 * 30).toISOString(),
+          frequency: "30min",
+          error: "Authentication failed: Invalid credentials"
+        },
+        {
+          id: "3",
+          name: "Daily Report Generator",
+          status: "paused",
+          type: "cron",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          owner_id: "user1",
+          owner_email: "user@example.com",
+          last_run: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+          next_run: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
+          frequency: "daily@8am"
+        }
+      ];
+      
+      setTasks(mockTasks);
+      
+      // Update stats
+      setStats({
+        activeUsers: 2, // Would be a count query in production
+        totalTasks: mockTasks.length,
+        activeTasks: mockTasks.filter(t => t.status === "running").length,
+        failedTasks: mockTasks.filter(t => t.status === "failed").length,
+        emailAccounts: emailAccounts.length,
+        avgSyncTime: 2.3 // This would be calculated from actual metrics
+      });
+      
+    } catch (error: any) {
+      console.error("Error fetching data:", error.message);
+      toast.error("Erro ao carregar dados");
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    assignAdmin();
-  }, []);
+  const formatDateTime = (dateString: string | null) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleString('pt-BR', { 
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const handleTaskAction = async (taskId: string, action: string) => {
+    setActionLoading(prev => ({ ...prev, [taskId]: true }));
+    
+    try {
+      // In production, this would be an API call to a management endpoint
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
+      
+      if (action === "start") {
+        setTasks(prev => prev.map(task => 
+          task.id === taskId ? { ...task, status: "running" } : task
+        ));
+        toast.success("Tarefa iniciada com sucesso");
+      } else if (action === "pause") {
+        setTasks(prev => prev.map(task => 
+          task.id === taskId ? { ...task, status: "paused" } : task
+        ));
+        toast.success("Tarefa pausada com sucesso");
+      } else if (action === "delete") {
+        setTasks(prev => prev.filter(task => task.id !== taskId));
+        toast.success("Tarefa removida com sucesso");
+      } else if (action === "retry") {
+        setTasks(prev => prev.map(task => 
+          task.id === taskId ? { ...task, status: "running", error: null } : task
+        ));
+        toast.success("Tarefa reiniciada com sucesso");
+      }
+      
+      // Update stats after action
+      const updatedTasks = tasks.map(task => 
+        task.id === taskId 
+          ? { ...task, status: action === "start" ? "running" : action === "pause" ? "paused" : task.status }
+          : task
+      ).filter(task => action !== "delete" || task.id !== taskId);
+      
+      setStats(prev => ({
+        ...prev,
+        totalTasks: action === "delete" ? prev.totalTasks - 1 : prev.totalTasks,
+        activeTasks: updatedTasks.filter(t => t.status === "running").length,
+        failedTasks: updatedTasks.filter(t => t.status === "failed").length,
+      }));
+      
+    } catch (error: any) {
+      console.error(`Error performing ${action} on task:`, error.message);
+      toast.error(`Erro ao ${action === "start" ? "iniciar" : action === "pause" ? "pausar" : action === "delete" ? "remover" : "reiniciar"} tarefa`);
+    } finally {
+      setActionLoading(prev => ({ ...prev, [taskId]: false }));
+    }
+  };
+
+  const getStatusBadge = (status: Task["status"]) => {
+    switch (status) {
+      case "running":
+        return <Badge className="bg-green-500">Ativo</Badge>;
+      case "paused":
+        return <Badge variant="outline" className="text-amber-500 border-amber-500">Pausado</Badge>;
+      case "failed":
+        return <Badge variant="destructive">Falhou</Badge>;
+      case "completed":
+        return <Badge className="bg-blue-500">Completo</Badge>;
+      default:
+        return <Badge variant="outline">Desconhecido</Badge>;
+    }
+  };
+
+  const getTaskTypeIcon = (type: Task["type"]) => {
+    switch (type) {
+      case "sync":
+        return <RefreshCw className="h-4 w-4 text-blue-500" />;
+      case "cron":
+        return <Clock className="h-4 w-4 text-amber-500" />;
+      case "background":
+        return <Zap className="h-4 w-4 text-purple-500" />;
+      default:
+        return <Activity className="h-4 w-4" />;
+    }
+  };
 
   return (
     <SidebarProvider>
@@ -77,35 +310,330 @@ const SuperAdmin = () => {
           </header>
           
           <div className="p-4 md:p-6 flex-1 overflow-auto">
-            <AdminStats stats={stats} />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Usuários Ativos</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.activeUsers}</div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Tarefas Ativas</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.activeTasks}/{stats.totalTasks}</div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Contas de Email</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.emailAccounts}</div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Tarefas com Erro</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-500">{stats.failedTasks}</div>
+                </CardContent>
+              </Card>
+            </div>
             
             <Tabs defaultValue="tasks" className="w-full">
               <TabsList className="mb-4">
                 <TabsTrigger value="tasks">Tarefas & Cron Jobs</TabsTrigger>
                 <TabsTrigger value="accounts">Contas de Email</TabsTrigger>
                 <TabsTrigger value="system">Estatísticas do Sistema</TabsTrigger>
-                <TabsTrigger value="errors">Logs de Erro</TabsTrigger>
               </TabsList>
               
               <TabsContent value="tasks">
-                <TaskList 
-                  tasks={tasks}
-                  loading={loading}
-                  actionLoading={actionLoading}
-                  onTaskAction={handleTaskAction}
-                />
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Gerenciador de Tarefas</CardTitle>
+                    <CardDescription>
+                      Gerencie tarefas em background, sincronizações e cron jobs
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {loading ? (
+                      <div className="py-8 flex justify-center items-center">
+                        <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-10">Tipo</TableHead>
+                            <TableHead>Nome</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Última Execução</TableHead>
+                            <TableHead>Próxima Execução</TableHead>
+                            <TableHead>Frequência</TableHead>
+                            <TableHead>Usuário</TableHead>
+                            <TableHead className="text-right">Ações</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {tasks.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                                Nenhuma tarefa encontrada
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            tasks.map((task) => (
+                              <React.Fragment key={task.id}>
+                                <TableRow>
+                                  <TableCell>{getTaskTypeIcon(task.type)}</TableCell>
+                                  <TableCell className="font-medium">{task.name}</TableCell>
+                                  <TableCell>{getStatusBadge(task.status)}</TableCell>
+                                  <TableCell>{formatDateTime(task.last_run)}</TableCell>
+                                  <TableCell>{formatDateTime(task.next_run)}</TableCell>
+                                  <TableCell>{task.frequency}</TableCell>
+                                  <TableCell>{task.owner_email}</TableCell>
+                                  <TableCell className="text-right">
+                                    <div className="flex justify-end space-x-1">
+                                      {task.status === "running" ? (
+                                        <Button 
+                                          variant="outline" 
+                                          size="icon"
+                                          onClick={() => handleTaskAction(task.id, "pause")}
+                                          disabled={actionLoading[task.id]}
+                                        >
+                                          {actionLoading[task.id] ? 
+                                            <RefreshCw className="h-4 w-4 animate-spin" /> : 
+                                            <PauseCircle className="h-4 w-4" />
+                                          }
+                                        </Button>
+                                      ) : (
+                                        <Button 
+                                          variant="outline" 
+                                          size="icon"
+                                          onClick={() => handleTaskAction(task.id, "start")}
+                                          disabled={actionLoading[task.id]}
+                                        >
+                                          {actionLoading[task.id] ? 
+                                            <RefreshCw className="h-4 w-4 animate-spin" /> : 
+                                            <PlayCircle className="h-4 w-4" />
+                                          }
+                                        </Button>
+                                      )}
+                                      
+                                      {task.status === "failed" && (
+                                        <Button 
+                                          variant="outline" 
+                                          size="icon"
+                                          onClick={() => handleTaskAction(task.id, "retry")}
+                                          disabled={actionLoading[task.id]}
+                                        >
+                                          {actionLoading[task.id] ? 
+                                            <RefreshCw className="h-4 w-4 animate-spin" /> : 
+                                            <RefreshCw className="h-4 w-4" />
+                                          }
+                                        </Button>
+                                      )}
+                                      
+                                      <Button 
+                                        variant="outline" 
+                                        size="icon"
+                                        onClick={() => handleTaskAction(task.id, "delete")}
+                                        disabled={actionLoading[task.id]}
+                                        className="text-red-500 hover:text-red-600"
+                                      >
+                                        {actionLoading[task.id] ? 
+                                          <RefreshCw className="h-4 w-4 animate-spin" /> : 
+                                          <Trash className="h-4 w-4" />
+                                        }
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                                
+                                {task.error && (
+                                  <TableRow className="bg-red-50">
+                                    <TableCell colSpan={8} className="py-2 px-4 text-red-600 text-sm flex items-center">
+                                      <AlertTriangle className="h-4 w-4 mr-2" />
+                                      {task.error}
+                                    </TableCell>
+                                  </TableRow>
+                                )}
+                              </React.Fragment>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
               </TabsContent>
               
               <TabsContent value="accounts">
-                <AccountsList accounts={accounts} loading={loading} />
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Contas de Email Conectadas</CardTitle>
+                    <CardDescription>
+                      Visualize todas as contas de email configuradas no sistema
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {loading ? (
+                      <div className="py-8 flex justify-center items-center">
+                        <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Provedor</TableHead>
+                            <TableHead>Tipo de Autenticação</TableHead>
+                            <TableHead>Última Sincronização</TableHead>
+                            <TableHead>Intervalo</TableHead>
+                            <TableHead>Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {accounts.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                                Nenhuma conta de email encontrada
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            accounts.map((account) => (
+                              <TableRow key={account.id}>
+                                <TableCell className="font-medium">{account.email}</TableCell>
+                                <TableCell>{account.provider}</TableCell>
+                                <TableCell>{account.auth_type}</TableCell>
+                                <TableCell>
+                                  {account.last_synced ? 
+                                    formatDateTime(account.last_synced) : 
+                                    "Nunca sincronizado"}
+                                </TableCell>
+                                <TableCell>
+                                  {account.sync_interval_minutes ? 
+                                    `${account.sync_interval_minutes} minutos` : 
+                                    "Manual"}
+                                </TableCell>
+                                <TableCell>
+                                  {account.last_synced ? 
+                                    <Badge className="bg-green-500">Ativo</Badge> : 
+                                    <Badge variant="outline">Não Configurado</Badge>}
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
               </TabsContent>
               
               <TabsContent value="system">
-                <SystemMetrics avgSyncTime={stats.avgSyncTime} />
-              </TabsContent>
-              
-              <TabsContent value="errors">
-                <SystemErrorList errors={errors} loading={loading} />
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Estatísticas do Sistema</CardTitle>
+                    <CardDescription>
+                      Desempenho e métricas do sistema
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="text-lg font-semibold mb-2">Métricas de Sincronização</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <Card>
+                            <CardContent className="p-4">
+                              <div className="text-sm font-medium text-muted-foreground mb-1">
+                                Tempo Médio de Sincronização
+                              </div>
+                              <div className="text-2xl font-bold">
+                                {stats.avgSyncTime} seg
+                              </div>
+                            </CardContent>
+                          </Card>
+                          
+                          <Card>
+                            <CardContent className="p-4">
+                              <div className="text-sm font-medium text-muted-foreground mb-1">
+                                Total de Sincronizações (24h)
+                              </div>
+                              <div className="text-2xl font-bold">
+                                43
+                              </div>
+                            </CardContent>
+                          </Card>
+                          
+                          <Card>
+                            <CardContent className="p-4">
+                              <div className="text-sm font-medium text-muted-foreground mb-1">
+                                Taxa de Sucesso
+                              </div>
+                              <div className="text-2xl font-bold">
+                                98.2%
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </div>
+                      
+                      <Separator />
+                      
+                      <div>
+                        <h3 className="text-lg font-semibold mb-2">Sistema</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <Card>
+                            <CardContent className="p-4">
+                              <div className="space-y-2">
+                                <div className="flex justify-between">
+                                  <span className="text-sm text-muted-foreground">Versão</span>
+                                  <span className="font-medium">1.0.0</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-sm text-muted-foreground">Tempo de Atividade</span>
+                                  <span className="font-medium">3d 5h 12m</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-sm text-muted-foreground">Último Reinício</span>
+                                  <span className="font-medium">12/04/2025 08:23</span>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                          
+                          <Card>
+                            <CardContent className="p-4">
+                              <div className="space-y-2">
+                                <div className="flex justify-between">
+                                  <span className="text-sm text-muted-foreground">CPU</span>
+                                  <span className="font-medium">12%</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-sm text-muted-foreground">Memória</span>
+                                  <span className="font-medium">348MB / 1GB</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-sm text-muted-foreground">Armazenamento</span>
+                                  <span className="font-medium">1.2GB / 5GB</span>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
           </div>
