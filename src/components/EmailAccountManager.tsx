@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,7 @@ import { BasicConnectionForm } from './email/BasicConnectionForm';
 import { AuthRequiredDialog } from './email/AuthRequiredDialog';
 
 export function EmailAccountManager() {
-  const [connectionType, setConnectionType] = useState<'oauth2' | 'basic'>('oauth2');
+  const [connectionType, setConnectionType] = useState<'oauth2' | 'imap' | 'pop3'>('oauth2');
   const [provider, setProvider] = useState<'gmail' | 'outlook' | 'custom'>('gmail');
   const [email, setEmail] = useState('');
   const [host, setHost] = useState('');
@@ -64,13 +65,12 @@ export function EmailAccountManager() {
           user_id: authData.user.id,
           provider: provider,
           email: email,
-          access_token: connectionType === 'basic' ? JSON.stringify({
-            auth_type: 'basic',
-            host,
-            port: port ? parseInt(port) : null,
-            username,
-            password
-          }) : null,
+          auth_type: connectionType,
+          host: connectionType !== 'oauth2' ? host : null,
+          port: connectionType !== 'oauth2' && port ? parseInt(port) : null,
+          username: connectionType !== 'oauth2' ? username : null,
+          password: connectionType !== 'oauth2' ? password : null,
+          access_token: null,
           refresh_token: null
         });
 
@@ -138,7 +138,7 @@ export function EmailAccountManager() {
               />
             </div>
 
-            {connectionType === 'basic' && (
+            {connectionType !== 'oauth2' && (
               <BasicConnectionForm
                 host={host}
                 setHost={setHost}
