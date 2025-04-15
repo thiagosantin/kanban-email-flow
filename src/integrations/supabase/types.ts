@@ -75,6 +75,50 @@ export type Database = {
         }
         Relationships: []
       }
+      email_folders: {
+        Row: {
+          account_id: string | null
+          created_at: string | null
+          email_count: number | null
+          id: string
+          name: string
+          path: string
+          type: Database["public"]["Enums"]["folder_type"] | null
+          unread_count: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          created_at?: string | null
+          email_count?: number | null
+          id?: string
+          name: string
+          path: string
+          type?: Database["public"]["Enums"]["folder_type"] | null
+          unread_count?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          created_at?: string | null
+          email_count?: number | null
+          id?: string
+          name?: string
+          path?: string
+          type?: Database["public"]["Enums"]["folder_type"] | null
+          unread_count?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_folders_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "email_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emails: {
         Row: {
           account_id: string | null
@@ -83,6 +127,7 @@ export type Database = {
           date: string
           external_id: string
           flagged: boolean | null
+          folder_id: string | null
           from_email: string
           from_name: string | null
           id: string
@@ -99,6 +144,7 @@ export type Database = {
           date: string
           external_id: string
           flagged?: boolean | null
+          folder_id?: string | null
           from_email: string
           from_name?: string | null
           id?: string
@@ -115,6 +161,7 @@ export type Database = {
           date?: string
           external_id?: string
           flagged?: boolean | null
+          folder_id?: string | null
           from_email?: string
           from_name?: string | null
           id?: string
@@ -130,6 +177,13 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "email_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emails_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "email_folders"
             referencedColumns: ["id"]
           },
         ]
@@ -253,6 +307,7 @@ export type Database = {
           date: string
           external_id: string
           flagged: boolean | null
+          folder_id: string | null
           from_email: string
           from_name: string | null
           id: string
@@ -267,6 +322,14 @@ export type Database = {
     Enums: {
       app_role: "admin" | "user"
       email_status: "inbox" | "awaiting" | "processing" | "done"
+      folder_type:
+        | "inbox"
+        | "sent"
+        | "drafts"
+        | "trash"
+        | "spam"
+        | "archive"
+        | "custom"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -384,6 +447,15 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "user"],
       email_status: ["inbox", "awaiting", "processing", "done"],
+      folder_type: [
+        "inbox",
+        "sent",
+        "drafts",
+        "trash",
+        "spam",
+        "archive",
+        "custom",
+      ],
     },
   },
 } as const

@@ -1,4 +1,3 @@
-
 export interface EmailAccount {
   id: string;
   provider: string;
