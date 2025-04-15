@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,21 +31,25 @@ export function EmailAccountManager() {
 
   const handleAddAccount = async () => {
     try {
-      // Using from() instead of rpc() for the add_email_account function
-      const { data, error } = await supabase.rpc('add_email_account', {
-        p_provider: provider,
-        p_email: email,
-        p_auth_type: connectionType,
-        p_host: connectionType === 'basic' ? host : null,
-        p_port: connectionType === 'basic' ? parseInt(port) : null,
-        p_username: connectionType === 'basic' ? username : null,
-        p_password: connectionType === 'basic' ? password : null
-      });
+      const { data, error } = await supabase
+        .from('email_accounts')
+        .insert({
+          provider: provider,
+          email: email,
+          auth_type: connectionType,
+          host: connectionType === 'basic' ? host : null,
+          port: connectionType === 'basic' ? parseInt(port) : null,
+          username: connectionType === 'basic' ? username : null,
+          password: connectionType === 'basic' ? password : null,
+          smtp_host: null,
+          smtp_port: null,
+          smtp_username: null,
+          smtp_password: null
+        });
 
       if (error) throw error;
 
       toast.success('Email account added successfully');
-      // Reset form
       setEmail('');
       setHost('');
       setPort('');
