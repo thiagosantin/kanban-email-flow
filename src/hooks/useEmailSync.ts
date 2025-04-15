@@ -39,6 +39,36 @@ export function useEmailSync() {
     }
   });
 
+  const syncFoldersMutation = useMutation({
+    mutationFn: async (accountId: string) => {
+      setIsSyncing(prev => ({ ...prev, [accountId]: true }));
+      
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          throw new Error('You must be logged in to sync folders');
+        }
+        
+        const { data, error } = await supabase.functions.invoke('sync-folders', {
+          body: { account_id: accountId }
+        });
+        
+        if (error) throw error;
+        return data;
+      } finally {
+        setIsSyncing(prev => ({ ...prev, [accountId]: false }));
+      }
+    },
+    onSuccess: (data, accountId) => {
+      queryClient.invalidateQueries({ queryKey: ['email_accounts'] });
+      toast.success(`Synced ${data.count} folders`);
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to sync folders: ${error.message}`);
+    }
+  });
+
   const syncAllAccounts = async (accounts: EmailAccount[]) => {
     if (!accounts || accounts.length === 0) {
       toast.error('No email accounts configured');
@@ -52,6 +82,7 @@ export function useEmailSync() {
 
   return {
     syncAccount: syncEmailsMutation.mutate,
+    syncFolders: syncFoldersMutation.mutate,
     syncAllAccounts,
     isSyncing
   };

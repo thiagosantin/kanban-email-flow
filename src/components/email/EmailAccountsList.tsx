@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,10 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
+  ChevronDown,
+  ChevronRight,
+  Folder,
+  FolderOpen,
   MoreHorizontal, 
   RefreshCw, 
   Trash2, 
@@ -26,13 +31,19 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useEmailSync } from "@/hooks/useEmailSync";
-import { EmailAccount } from "@/types/email";
+import { EmailAccount, EmailFolder } from "@/types/email";
 import { format, formatDistanceToNow } from "date-fns";
+import { 
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from "@/components/ui/collapsible";
 
 export function EmailAccountsList() {
   const [accounts, setAccounts] = useState<EmailAccount[]>([]);
   const [loading, setLoading] = useState(true);
-  const { syncAccount, syncAllAccounts, isSyncing } = useEmailSync();
+  const [expandedAccounts, setExpandedAccounts] = useState<Record<string, boolean>>({});
+  const { syncAccount, syncAllAccounts, syncFolders, isSyncing } = useEmailSync();
 
   useEffect(() => {
     loadEmailAccounts();
@@ -59,11 +70,18 @@ export function EmailAccountsList() {
       setLoading(true);
       const { data, error } = await supabase
         .from('email_accounts')
-        .select('*')
+        .select('*, email_folders(*)')
         .order('created_at', { ascending: false });
         
       if (error) throw error;
-      setAccounts(data as EmailAccount[] || []);
+      
+      // Transform the data to include folders
+      const accountsWithFolders = (data || []).map(account => ({
+        ...account,
+        folders: account.email_folders || []
+      }));
+      
+      setAccounts(accountsWithFolders as EmailAccount[]);
     } catch (error: any) {
       toast.error('Failed to load email accounts: ' + error.message);
     } finally {
@@ -84,6 +102,23 @@ export function EmailAccountsList() {
       toast.success('Email account deleted successfully');
     } catch (error: any) {
       toast.error('Failed to delete account: ' + error.message);
+    }
+  };
+
+  const toggleAccountExpansion = (accountId: string) => {
+    setExpandedAccounts(prev => ({
+      ...prev,
+      [accountId]: !prev[accountId]
+    }));
+  };
+
+  const handleSyncFolders = async (accountId: string) => {
+    try {
+      await syncFolders(accountId);
+      // Refresh the accounts list to get updated folders
+      loadEmailAccounts();
+    } catch (error: any) {
+      toast.error('Failed to sync folders: ' + error.message);
     }
   };
 
@@ -136,6 +171,15 @@ export function EmailAccountsList() {
     }
   };
 
+  const getFolderIcon = (type: string) => {
+    switch (type) {
+      case 'inbox':
+        return <Mail className="h-4 w-4 mr-2" />;
+      default:
+        return <Folder className="h-4 w-4 mr-2" />;
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -158,7 +202,7 @@ export function EmailAccountsList() {
   return (
     <div className="space-y-4">
       {accounts.length > 0 && (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
           <Button 
             variant="outline" 
             size="sm"
@@ -208,7 +252,13 @@ export function EmailAccountsList() {
                       onClick={() => syncAccount(account.id)}
                       disabled={isSyncing[account.id]}
                     >
-                      <RefreshCw className="h-4 w-4 mr-2" /> Sync Now
+                      <RefreshCw className="h-4 w-4 mr-2" /> Sync Emails
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => handleSyncFolders(account.id)}
+                      disabled={isSyncing[account.id]}
+                    >
+                      <FolderOpen className="h-4 w-4 mr-2" /> Sync Folders
                     </DropdownMenuItem>
                     <DropdownMenuItem>
                       <Settings className="h-4 w-4 mr-2" /> Settings
@@ -228,6 +278,47 @@ export function EmailAccountsList() {
                 <p>Last synced: {formatLastSynced(account.last_synced)}</p>
                 <p>Sync interval: Every {account.sync_interval_minutes} minutes</p>
               </div>
+              
+              <Collapsible
+                open={expandedAccounts[account.id]}
+                onOpenChange={() => toggleAccountExpansion(account.id)}
+                className="mt-4"
+              >
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="flex items-center w-full justify-between p-2">
+                    <span className="flex items-center">
+                      {expandedAccounts[account.id] ? (
+                        <ChevronDown className="h-4 w-4 mr-2" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 mr-2" />
+                      )}
+                      Folders
+                    </span>
+                    <Badge variant="outline">{account.folders?.length || 0}</Badge>
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="pl-6 space-y-1 mt-2">
+                    {(account.folders && account.folders.length > 0) ? (
+                      account.folders.map(folder => (
+                        <div key={folder.id} className="flex items-center py-1 px-2 rounded hover:bg-gray-100">
+                          {getFolderIcon(folder.type)}
+                          <span className="text-sm">{folder.name}</span>
+                          {folder.unread_count ? (
+                            <Badge variant="secondary" className="ml-auto text-xs">
+                              {folder.unread_count}
+                            </Badge>
+                          ) : null}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-500 py-2">
+                        No folders found. Click "Sync Folders" to fetch folders.
+                      </div>
+                    )}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </CardContent>
             <CardFooter className="pt-2 flex justify-between">
               <Badge variant="outline" className={getProviderColor(account.provider)}>

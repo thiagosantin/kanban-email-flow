@@ -18,6 +18,17 @@ export interface EmailAccount {
   sync_interval_minutes?: number;
   access_token?: string | null;
   refresh_token?: string | null;
+  folders?: EmailFolder[] | null;
+}
+
+export interface EmailFolder {
+  id: string;
+  name: string;
+  path: string;
+  type: 'inbox' | 'sent' | 'drafts' | 'trash' | 'spam' | 'archive' | 'custom';
+  email_count?: number;
+  unread_count?: number;
+  account_id: string;
 }
 
 export type EmailStatus = 'inbox' | 'awaiting' | 'processing' | 'done';
@@ -37,4 +48,5 @@ export interface Email {
   content: string | null;
   external_id: string;
   from_email: string;
+  folder_id?: string | null;
 }
