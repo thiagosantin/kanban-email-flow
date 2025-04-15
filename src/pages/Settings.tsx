@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,10 +21,12 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { useNavigate } from "react-router-dom";
 import { EmailConnectionDialog } from "@/components/email/EmailConnectionDialog";
 import { EmailAccountsList } from "@/components/email/EmailAccountsList";
+import { useEmailAccounts } from "@/hooks/useEmailAccounts";
 
 const Settings = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const { accounts, isLoading: accountsLoading } = useEmailAccounts();
 
   const handleSave = () => {
     setLoading(true);
@@ -100,7 +103,10 @@ const Settings = () => {
                 <div className="bg-white rounded-lg shadow-sm border border-kanban-gray-200 p-6">
                   <h2 className="text-xl font-semibold mb-6">Contas de Email Conectadas</h2>
                   
-                  <EmailAccountsList />
+                  <EmailAccountsList 
+                    accounts={accounts} 
+                    isLoading={accountsLoading}
+                  />
                   
                   <div className="mt-6">
                     <EmailConnectionDialog />
