@@ -47,6 +47,7 @@ import { EmailAccount } from "@/types/email";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { SuperAdminSidebar } from "@/components/SuperAdminSidebar";
 import { OAuthHelpDialog } from "@/components/OAuthHelpDialog";
+import { OAuthConfigurationForm } from "@/components/admin/OAuthConfigurationForm";
 
 type Task = {
   id: string;
@@ -86,6 +87,7 @@ const SuperAdmin = () => {
   });
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
+  const [oauthConfigs, setOauthConfigs] = useState<Record<string, any>>({});
 
   useEffect(() => {
     const checkAdminAccess = async () => {
@@ -188,6 +190,30 @@ const SuperAdmin = () => {
       setLoading(false);
     }
   };
+
+  const fetchOAuthConfigs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('oauth_configurations')
+        .select('*');
+        
+      if (error) throw error;
+      
+      const configsByProvider = data.reduce((acc: Record<string, any>, config) => {
+        acc[config.provider] = config;
+        return acc;
+      }, {});
+      
+      setOauthConfigs(configsByProvider);
+    } catch (error) {
+      console.error('Error fetching OAuth configs:', error);
+      toast.error('Failed to load OAuth configurations');
+    }
+  };
+
+  useEffect(() => {
+    fetchOAuthConfigs();
+  }, []);
 
   const formatDateTime = (dateString: string | null) => {
     if (!dateString) return "N/A";
@@ -586,7 +612,7 @@ const SuperAdmin = () => {
                       <Separator />
                       
                       <div>
-                        <h3 className="text-lg font-semibold mb-4">Configuração OAuth</h3>
+                        <h3 className="text-lg font-semibold mb-4">OAuth Configuration</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <Card>
                             <CardHeader className="pb-2">
@@ -596,24 +622,11 @@ const SuperAdmin = () => {
                               </CardTitle>
                             </CardHeader>
                             <CardContent>
-                              <div className="space-y-2">
-                                <div className="flex justify-between">
-                                  <span className="text-sm text-muted-foreground">Status</span>
-                                  <Badge variant="outline" className="text-red-500">Não Configurado</Badge>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-sm text-muted-foreground">Client ID</span>
-                                  <span className="font-medium text-sm">Não definido</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-sm text-muted-foreground">Client Secret</span>
-                                  <span className="font-medium text-sm">•••••••••••••</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-sm text-muted-foreground">Redirect URI</span>
-                                  <span className="font-medium text-sm">/auth/callback</span>
-                                </div>
-                              </div>
+                              <OAuthConfigurationForm
+                                provider="gmail"
+                                config={oauthConfigs['gmail']}
+                                onSuccess={fetchOAuthConfigs}
+                              />
                             </CardContent>
                           </Card>
 
@@ -625,24 +638,11 @@ const SuperAdmin = () => {
                               </CardTitle>
                             </CardHeader>
                             <CardContent>
-                              <div className="space-y-2">
-                                <div className="flex justify-between">
-                                  <span className="text-sm text-muted-foreground">Status</span>
-                                  <Badge variant="outline" className="text-red-500">Não Configurado</Badge>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-sm text-muted-foreground">Client ID</span>
-                                  <span className="font-medium text-sm">Não definido</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-sm text-muted-foreground">Client Secret</span>
-                                  <span className="font-medium text-sm">•••••••••••••</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-sm text-muted-foreground">Redirect URI</span>
-                                  <span className="font-medium text-sm">/auth/callback</span>
-                                </div>
-                              </div>
+                              <OAuthConfigurationForm
+                                provider="outlook"
+                                config={oauthConfigs['outlook']}
+                                onSuccess={fetchOAuthConfigs}
+                              />
                             </CardContent>
                           </Card>
                         </div>

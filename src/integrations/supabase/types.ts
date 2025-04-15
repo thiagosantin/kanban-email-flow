@@ -134,6 +134,36 @@ export type Database = {
           },
         ]
       }
+      oauth_configurations: {
+        Row: {
+          client_id: string | null
+          client_secret: string | null
+          created_at: string | null
+          id: string
+          provider: string
+          redirect_uri: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          client_secret?: string | null
+          created_at?: string | null
+          id?: string
+          provider: string
+          redirect_uri?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          client_secret?: string | null
+          created_at?: string | null
+          id?: string
+          provider?: string
+          redirect_uri?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
