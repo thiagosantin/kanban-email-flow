@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,12 +18,13 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { Mail, Plus } from "lucide-react";
+import { Mail, Plus, TestTube } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 type ConnectionType = 'oauth2' | 'imap' | 'pop3';
 type Provider = 'gmail' | 'outlook' | 'custom';
+type SyncInterval = 5 | 15 | 30 | 60 | 120;
 
 export function EmailConnectionDialog() {
   const [connectionType, setConnectionType] = useState<ConnectionType>('oauth2');
@@ -40,8 +40,9 @@ export function EmailConnectionDialog() {
   const [smtpPassword, setSmtpPassword] = useState('');
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [syncInterval, setSyncInterval] = useState<SyncInterval>(15);
+  const [testing, setTesting] = useState(false);
 
-  // Helper to get default ports based on connection type
   const getDefaultPort = (type: ConnectionType) => {
     switch (type) {
       case 'imap': return '993';
@@ -50,7 +51,6 @@ export function EmailConnectionDialog() {
     }
   };
 
-  // Helper to get default SMTP port
   const getDefaultSmtpPort = () => '587';
 
   const handleConnectionTypeChange = (value: ConnectionType) => {
@@ -85,14 +85,49 @@ export function EmailConnectionDialog() {
         return;
       }
 
-      // Here you would implement OAuth flow
-      // For now, we'll just show a toast
       toast.info(`OAuth connection with ${provider} will be implemented soon`);
       setOpen(false);
     } catch (error) {
       toast.error('Failed to connect account');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    try {
+      setTesting(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error('You must be logged in to test email account');
+        return;
+      }
+
+      const testResult = await supabase.from('email_accounts').insert({
+        user_id: user.id,
+        provider,
+        email,
+        auth_type: connectionType,
+        host: server,
+        port: port ? parseInt(port) : null,
+        username,
+        password,
+        smtp_host: smtpServer,
+        smtp_port: smtpPort ? parseInt(smtpPort) : null,
+        smtp_username: smtpUsername || username,
+        smtp_password: smtpPassword || password,
+        sync_interval_minutes: syncInterval,
+        last_synced: null
+      });
+
+      if (testResult.error) throw testResult.error;
+
+      toast.success('Email account connection tested successfully');
+    } catch (error: any) {
+      toast.error('Failed to test account: ' + error.message);
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -118,7 +153,9 @@ export function EmailConnectionDialog() {
         smtp_host: smtpServer,
         smtp_port: smtpPort ? parseInt(smtpPort) : null,
         smtp_username: smtpUsername || username,
-        smtp_password: smtpPassword || password
+        smtp_password: smtpPassword || password,
+        sync_interval_minutes: syncInterval,
+        last_synced: null
       });
 
       if (error) throw error;
@@ -126,7 +163,6 @@ export function EmailConnectionDialog() {
       toast.success('Email account connected successfully');
       setOpen(false);
       
-      // Reset form
       setEmail('');
       setServer('');
       setPort('');
@@ -300,15 +336,33 @@ export function EmailConnectionDialog() {
         </div>
         <DialogFooter>
           {connectionType !== 'oauth2' && (
-            <Button onClick={handleManualConnect} disabled={loading}>
-              {loading ? (
-                "Connecting..."
-              ) : (
-                <>
-                  <Mail className="mr-2 h-4 w-4" /> Connect Account
-                </>
-              )}
-            </Button>
+            <div className="flex justify-between w-full">
+              <Button 
+                variant="outline" 
+                onClick={handleTestConnection} 
+                disabled={loading || testing}
+              >
+                {testing ? (
+                  "Testing..."
+                ) : (
+                  <>
+                    <TestTube className="mr-2 h-4 w-4" /> Test Connection
+                  </>
+                )}
+              </Button>
+              <Button 
+                onClick={handleManualConnect} 
+                disabled={loading || testing}
+              >
+                {loading ? (
+                  "Connecting..."
+                ) : (
+                  <>
+                    <Mail className="mr-2 h-4 w-4" /> Connect Account
+                  </>
+                )}
+              </Button>
+            </div>
           )}
         </DialogFooter>
       </DialogContent>

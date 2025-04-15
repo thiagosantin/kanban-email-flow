@@ -17,6 +17,7 @@ export type Database = {
           email: string
           host: string | null
           id: string
+          last_synced: string | null
           password: string | null
           port: number | null
           provider: string
@@ -25,6 +26,7 @@ export type Database = {
           smtp_password: string | null
           smtp_port: number | null
           smtp_username: string | null
+          sync_interval_minutes: number
           updated_at: string | null
           user_id: string
           username: string | null
@@ -36,6 +38,7 @@ export type Database = {
           email: string
           host?: string | null
           id?: string
+          last_synced?: string | null
           password?: string | null
           port?: number | null
           provider: string
@@ -44,6 +47,7 @@ export type Database = {
           smtp_password?: string | null
           smtp_port?: number | null
           smtp_username?: string | null
+          sync_interval_minutes?: number
           updated_at?: string | null
           user_id: string
           username?: string | null
@@ -55,6 +59,7 @@ export type Database = {
           email?: string
           host?: string | null
           id?: string
+          last_synced?: string | null
           password?: string | null
           port?: number | null
           provider?: string
@@ -63,6 +68,7 @@ export type Database = {
           smtp_password?: string | null
           smtp_port?: number | null
           smtp_username?: string | null
+          sync_interval_minutes?: number
           updated_at?: string | null
           user_id?: string
           username?: string | null
