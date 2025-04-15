@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
+import { AdminShortcut } from "@/components/AdminShortcut";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
@@ -43,6 +44,7 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <AdminShortcut />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={!session ? <Auth /> : <Navigate to="/dashboard" />} />
