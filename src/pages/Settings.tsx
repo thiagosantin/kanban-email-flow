@@ -13,15 +13,13 @@ import {
   Mail, 
   Palette, 
   Save, 
-  Trash, 
-  User, 
-  UserPlus 
+  User
 } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useNavigate } from "react-router-dom";
-import { EmailAccountManager } from "@/components/EmailAccountManager";
-import { EmailConnectionDialog } from "@/components/EmailConnectionDialog";
+import { EmailConnectionDialog } from "@/components/email/EmailConnectionDialog";
+import { EmailAccountsList } from "@/components/email/EmailAccountsList";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -101,7 +99,10 @@ const Settings = () => {
               <TabsContent value="emails" className="mt-6">
                 <div className="bg-white rounded-lg shadow-sm border border-kanban-gray-200 p-6">
                   <h2 className="text-xl font-semibold mb-6">Contas de Email Conectadas</h2>
-                  <div className="space-y-4">
+                  
+                  <EmailAccountsList />
+                  
+                  <div className="mt-6">
                     <EmailConnectionDialog />
                   </div>
                 </div>
