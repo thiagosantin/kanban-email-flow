@@ -1,8 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { 
   Dialog, 
   DialogContent, 
@@ -10,17 +8,14 @@ import {
   DialogTitle, 
   DialogTrigger 
 } from "@/components/ui/dialog";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { Mail, Plus, LogIn } from "lucide-react";
+import { Mail, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { ConnectionTypeSelector } from './email/ConnectionTypeSelector';
+import { ProviderSelector } from './email/ProviderSelector';
+import { BasicConnectionForm } from './email/BasicConnectionForm';
+import { AuthRequiredDialog } from './email/AuthRequiredDialog';
 
 export function EmailAccountManager() {
   const [connectionType, setConnectionType] = useState<'oauth2' | 'basic'>('oauth2');
@@ -115,59 +110,26 @@ export function EmailAccountManager() {
           <Plus className="mr-2 h-4 w-4" /> Add Email Account
         </Button>
       </DialogTrigger>
+      
       {!isLoggedIn ? (
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Authentication Required</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 text-center">
-            <p>You need to be logged in to add an email account.</p>
-            <Button onClick={handleNavigateToLogin} className="w-full">
-              <LogIn className="mr-2 h-4 w-4" /> Go to Login
-            </Button>
-          </div>
-        </DialogContent>
+        <AuthRequiredDialog onLoginClick={handleNavigateToLogin} />
       ) : (
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Connect Email Account</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Connection Type</Label>
-              <Select 
-                value={connectionType} 
-                onValueChange={(value: 'oauth2' | 'basic') => setConnectionType(value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select connection type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="oauth2">OAuth2 (Gmail, Outlook)</SelectItem>
-                  <SelectItem value="basic">IMAP/SMTP</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <ConnectionTypeSelector 
+              connectionType={connectionType} 
+              setConnectionType={setConnectionType} 
+            />
+
+            <ProviderSelector 
+              provider={provider} 
+              setProvider={setProvider} 
+            />
 
             <div className="space-y-2">
-              <Label>Provider</Label>
-              <Select 
-                value={provider} 
-                onValueChange={(value: 'gmail' | 'outlook' | 'custom') => setProvider(value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select email provider" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="gmail">Gmail</SelectItem>
-                  <SelectItem value="outlook">Outlook</SelectItem>
-                  <SelectItem value="custom">Custom Provider</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Email Address</Label>
               <Input 
                 type="email" 
                 value={email} 
@@ -177,42 +139,16 @@ export function EmailAccountManager() {
             </div>
 
             {connectionType === 'basic' && (
-              <>
-                <div className="space-y-2">
-                  <Label>IMAP Host</Label>
-                  <Input 
-                    value={host} 
-                    onChange={(e) => setHost(e.target.value)} 
-                    placeholder="imap.example.com" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>IMAP Port</Label>
-                  <Input 
-                    type="number" 
-                    value={port} 
-                    onChange={(e) => setPort(e.target.value)} 
-                    placeholder="993" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Username</Label>
-                  <Input 
-                    value={username} 
-                    onChange={(e) => setUsername(e.target.value)} 
-                    placeholder="your username" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Password</Label>
-                  <Input 
-                    type="password" 
-                    value={password} 
-                    onChange={(e) => setPassword(e.target.value)} 
-                    placeholder="your password" 
-                  />
-                </div>
-              </>
+              <BasicConnectionForm
+                host={host}
+                setHost={setHost}
+                port={port}
+                setPort={setPort}
+                username={username}
+                setUsername={setUsername}
+                password={password}
+                setPassword={setPassword}
+              />
             )}
 
             <Button onClick={handleAddAccount} className="w-full">
