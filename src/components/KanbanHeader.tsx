@@ -12,12 +12,15 @@ import {
   User
 } from "lucide-react";
 import { ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface KanbanHeaderProps {
   children?: ReactNode;
 }
 
 export function KanbanHeader({ children }: KanbanHeaderProps) {
+  const navigate = useNavigate();
+
   return (
     <header className="bg-white border-b border-kanban-gray-200 p-3 sticky top-0 z-10">
       <div className="flex items-center justify-between">
@@ -53,7 +56,12 @@ export function KanbanHeader({ children }: KanbanHeaderProps) {
           <Button variant="ghost" size="icon" className="text-kanban-gray-600 hover:text-kanban-blue">
             <Bell className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon" className="text-kanban-gray-600 hover:text-kanban-blue">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-kanban-gray-600 hover:text-kanban-blue"
+            onClick={() => navigate('/settings')}
+          >
             <Settings className="h-5 w-5" />
           </Button>
           
