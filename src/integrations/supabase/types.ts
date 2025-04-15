@@ -160,8 +160,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_admin_role: {
+        Args: { target_user_id: string }
+        Returns: boolean
+      }
       is_admin: {
         Args: { user_id: string }
+        Returns: boolean
+      }
+      revoke_admin_role: {
+        Args: { target_user_id: string }
         Returns: boolean
       }
       update_email_status: {
