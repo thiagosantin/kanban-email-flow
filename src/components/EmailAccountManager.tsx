@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +16,7 @@ import { ConnectionTypeSelector } from './email/ConnectionTypeSelector';
 import { ProviderSelector } from './email/ProviderSelector';
 import { BasicConnectionForm } from './email/BasicConnectionForm';
 import { AuthRequiredDialog } from './email/AuthRequiredDialog';
+import { TestConnectionButton } from './email/TestConnectionButton';
 
 export function EmailAccountManager() {
   const [connectionType, setConnectionType] = useState<'oauth2' | 'imap' | 'pop3'>('oauth2');
@@ -31,10 +31,8 @@ export function EmailAccountManager() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if user is logged in when component mounts
     checkUserAuth();
 
-    // Set up auth state listener to detect login/logout
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
       checkUserAuth();
     });
@@ -151,9 +149,21 @@ export function EmailAccountManager() {
               />
             )}
 
-            <Button onClick={handleAddAccount} className="w-full">
-              <Mail className="mr-2 h-4 w-4" /> Connect Account
-            </Button>
+            <div className="flex flex-col md:flex-row gap-4 justify-end">
+              <TestConnectionButton
+                emailConfig={{
+                  provider,
+                  email,
+                  host,
+                  port,
+                  username,
+                  password,
+                }}
+              />
+              <Button onClick={handleAddAccount} className="w-full md:w-auto">
+                <Mail className="mr-2 h-4 w-4" /> Connect Account
+              </Button>
+            </div>
           </div>
         </DialogContent>
       )}
