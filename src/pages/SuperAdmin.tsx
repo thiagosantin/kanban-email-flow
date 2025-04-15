@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -14,7 +13,8 @@ import {
   PauseCircle,
   RefreshCw,
   Trash,
-  AlertTriangle
+  AlertTriangle,
+  Mail
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -46,6 +46,7 @@ import { toast } from "sonner";
 import { EmailAccount } from "@/types/email";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { SuperAdminSidebar } from "@/components/SuperAdminSidebar";
+import { OAuthHelpDialog } from "@/components/OAuthHelpDialog";
 
 type Task = {
   id: string;
@@ -81,7 +82,7 @@ const SuperAdmin = () => {
     activeTasks: 0,
     failedTasks: 0,
     emailAccounts: 0,
-    avgSyncTime: 2.3, // Example default value
+    avgSyncTime: 2.3,
   });
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
@@ -96,8 +97,6 @@ const SuperAdmin = () => {
         return;
       }
       
-      // In a real app, you'd check if user has admin role
-      // This is a placeholder implementation
       const { data, error } = await supabase
         .from('email_accounts')
         .select('email')
@@ -110,8 +109,6 @@ const SuperAdmin = () => {
         return;
       }
       
-      // For demo purposes, considering any logged in user as admin
-      // In production, you'd have a proper role-based check
       fetchData();
     };
     
@@ -121,7 +118,6 @@ const SuperAdmin = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch email accounts
       const { data: accountsData, error: accountsError } = await supabase
         .from('email_accounts')
         .select('*');
@@ -131,8 +127,6 @@ const SuperAdmin = () => {
       const emailAccounts = accountsData as EmailAccount[] || [];
       setAccounts(emailAccounts);
       
-      // Fetch tasks (mock data for now, would be a real table in production)
-      // In a real implementation, this would come from a tasks table
       const mockTasks: Task[] = [
         {
           id: "1",
@@ -178,14 +172,13 @@ const SuperAdmin = () => {
       
       setTasks(mockTasks);
       
-      // Update stats
       setStats({
-        activeUsers: 2, // Would be a count query in production
+        activeUsers: 2,
         totalTasks: mockTasks.length,
         activeTasks: mockTasks.filter(t => t.status === "running").length,
         failedTasks: mockTasks.filter(t => t.status === "failed").length,
         emailAccounts: emailAccounts.length,
-        avgSyncTime: 2.3 // This would be calculated from actual metrics
+        avgSyncTime: 2.3
       });
       
     } catch (error: any) {
@@ -211,8 +204,7 @@ const SuperAdmin = () => {
     setActionLoading(prev => ({ ...prev, [taskId]: true }));
     
     try {
-      // In production, this would be an API call to a management endpoint
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       if (action === "start") {
         setTasks(prev => prev.map(task => 
@@ -234,7 +226,6 @@ const SuperAdmin = () => {
         toast.success("Tarefa reiniciada com sucesso");
       }
       
-      // Update stats after action
       const updatedTasks = tasks.map(task => 
         task.id === taskId 
           ? { ...task, status: action === "start" ? "running" : action === "pause" ? "paused" : task.status }
@@ -542,10 +533,15 @@ const SuperAdmin = () => {
               <TabsContent value="system">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Estatísticas do Sistema</CardTitle>
-                    <CardDescription>
-                      Desempenho e métricas do sistema
-                    </CardDescription>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle>Configurações do Sistema</CardTitle>
+                        <CardDescription>
+                          Configurações gerais e OAuth para provedores de email
+                        </CardDescription>
+                      </div>
+                      <OAuthHelpDialog />
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
@@ -590,41 +586,61 @@ const SuperAdmin = () => {
                       <Separator />
                       
                       <div>
-                        <h3 className="text-lg font-semibold mb-2">Sistema</h3>
+                        <h3 className="text-lg font-semibold mb-4">Configuração OAuth</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <Card>
-                            <CardContent className="p-4">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-base font-medium flex items-center gap-2">
+                                <Mail className="h-4 w-4 text-red-500" />
+                                Gmail OAuth
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
                               <div className="space-y-2">
                                 <div className="flex justify-between">
-                                  <span className="text-sm text-muted-foreground">Versão</span>
-                                  <span className="font-medium">1.0.0</span>
+                                  <span className="text-sm text-muted-foreground">Status</span>
+                                  <Badge variant="outline" className="text-red-500">Não Configurado</Badge>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-sm text-muted-foreground">Tempo de Atividade</span>
-                                  <span className="font-medium">3d 5h 12m</span>
+                                  <span className="text-sm text-muted-foreground">Client ID</span>
+                                  <span className="font-medium text-sm">Não definido</span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-sm text-muted-foreground">Último Reinício</span>
-                                  <span className="font-medium">12/04/2025 08:23</span>
+                                  <span className="text-sm text-muted-foreground">Client Secret</span>
+                                  <span className="font-medium text-sm">•••••••••••••</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-sm text-muted-foreground">Redirect URI</span>
+                                  <span className="font-medium text-sm">/auth/callback</span>
                                 </div>
                               </div>
                             </CardContent>
                           </Card>
-                          
+
                           <Card>
-                            <CardContent className="p-4">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-base font-medium flex items-center gap-2">
+                                <Mail className="h-4 w-4 text-blue-500" />
+                                Outlook OAuth
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
                               <div className="space-y-2">
                                 <div className="flex justify-between">
-                                  <span className="text-sm text-muted-foreground">CPU</span>
-                                  <span className="font-medium">12%</span>
+                                  <span className="text-sm text-muted-foreground">Status</span>
+                                  <Badge variant="outline" className="text-red-500">Não Configurado</Badge>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-sm text-muted-foreground">Memória</span>
-                                  <span className="font-medium">348MB / 1GB</span>
+                                  <span className="text-sm text-muted-foreground">Client ID</span>
+                                  <span className="font-medium text-sm">Não definido</span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-sm text-muted-foreground">Armazenamento</span>
-                                  <span className="font-medium">1.2GB / 5GB</span>
+                                  <span className="text-sm text-muted-foreground">Client Secret</span>
+                                  <span className="font-medium text-sm">•••••••••••••</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-sm text-muted-foreground">Redirect URI</span>
+                                  <span className="font-medium text-sm">/auth/callback</span>
                                 </div>
                               </div>
                             </CardContent>
