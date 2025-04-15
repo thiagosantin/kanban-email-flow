@@ -12,8 +12,10 @@ export function useAdminStatus() {
         const { data: { user } } = await supabase.auth.getUser();
         
         if (user) {
-          const { data, error } = await supabase
-            .from('user_roles')
+          // Use type assertion to work around the TypeScript error
+          // This is necessary because our Supabase client types don't yet know about the user_roles table
+          const { data, error } = await (supabase
+            .from('user_roles') as any)
             .select('role')
             .eq('user_id', user.id)
             .eq('role', 'admin')
