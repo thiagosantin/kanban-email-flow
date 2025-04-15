@@ -9,7 +9,8 @@ import {
   DialogHeader, 
   DialogTitle, 
   DialogTrigger,
-  DialogFooter
+  DialogFooter,
+  DialogDescription
 } from "@/components/ui/dialog";
 import { 
   Select, 
@@ -33,17 +34,65 @@ export function EmailConnectionDialog() {
   const [port, setPort] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [smtpServer, setSmtpServer] = useState('');
+  const [smtpPort, setSmtpPort] = useState('');
+  const [smtpUsername, setSmtpUsername] = useState('');
+  const [smtpPassword, setSmtpPassword] = useState('');
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Helper to get default ports based on connection type
+  const getDefaultPort = (type: ConnectionType) => {
+    switch (type) {
+      case 'imap': return '993';
+      case 'pop3': return '995';
+      default: return '';
+    }
+  };
+
+  // Helper to get default SMTP port
+  const getDefaultSmtpPort = () => '587';
+
+  const handleConnectionTypeChange = (value: ConnectionType) => {
+    setConnectionType(value);
+    setPort(getDefaultPort(value));
+    if (value !== 'oauth2') {
+      setSmtpPort(getDefaultSmtpPort());
+    }
+  };
+
+  const handleProviderChange = (value: Provider) => {
+    setProvider(value);
+    if (value === 'gmail') {
+      setServer('imap.gmail.com');
+      setSmtpServer('smtp.gmail.com');
+    } else if (value === 'outlook') {
+      setServer('outlook.office365.com');
+      setSmtpServer('smtp.office365.com');
+    } else {
+      setServer('');
+      setSmtpServer('');
+    }
+  };
+
   const handleOAuthConnect = async (provider: 'gmail' | 'outlook') => {
     try {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error('You must be logged in to connect an email account');
+        return;
+      }
+
       // Here you would implement OAuth flow
       // For now, we'll just show a toast
-      toast.info(`OAuth connection with ${provider} will be implemented`);
+      toast.info(`OAuth connection with ${provider} will be implemented soon`);
       setOpen(false);
     } catch (error) {
       toast.error('Failed to connect account');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -59,19 +108,34 @@ export function EmailConnectionDialog() {
 
       const { error } = await supabase.from('email_accounts').insert({
         user_id: user.id,
-        provider: provider,
-        email: email,
+        provider,
+        email,
         auth_type: connectionType,
         host: server,
         port: port ? parseInt(port) : null,
         username,
-        password: password // In a production app, you'd want to encrypt this
+        password,
+        smtp_host: smtpServer,
+        smtp_port: smtpPort ? parseInt(smtpPort) : null,
+        smtp_username: smtpUsername || username,
+        smtp_password: smtpPassword || password
       });
 
       if (error) throw error;
 
       toast.success('Email account connected successfully');
       setOpen(false);
+      
+      // Reset form
+      setEmail('');
+      setServer('');
+      setPort('');
+      setUsername('');
+      setPassword('');
+      setSmtpServer('');
+      setSmtpPort('');
+      setSmtpUsername('');
+      setSmtpPassword('');
     } catch (error: any) {
       toast.error('Failed to connect account: ' + error.message);
     } finally {
@@ -89,13 +153,16 @@ export function EmailConnectionDialog() {
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Connect Email Account</DialogTitle>
+          <DialogDescription>
+            Add your email account to start managing your emails.
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label>Connection Type</Label>
             <Select 
               value={connectionType} 
-              onValueChange={(value: ConnectionType) => setConnectionType(value)}
+              onValueChange={(value: ConnectionType) => handleConnectionTypeChange(value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select connection type" />
@@ -113,6 +180,7 @@ export function EmailConnectionDialog() {
               <Button
                 variant="outline"
                 onClick={() => handleOAuthConnect('gmail')}
+                disabled={loading}
                 className="w-full"
               >
                 Connect with Gmail
@@ -120,6 +188,7 @@ export function EmailConnectionDialog() {
               <Button
                 variant="outline"
                 onClick={() => handleOAuthConnect('outlook')}
+                disabled={loading}
                 className="w-full"
               >
                 Connect with Outlook
@@ -128,6 +197,23 @@ export function EmailConnectionDialog() {
           ) : (
             <div className="grid gap-4">
               <div className="grid gap-2">
+                <Label>Provider</Label>
+                <Select 
+                  value={provider} 
+                  onValueChange={(value: Provider) => handleProviderChange(value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select provider" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gmail">Gmail</SelectItem>
+                    <SelectItem value="outlook">Outlook</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-2">
                 <Label>Email Address</Label>
                 <Input 
                   value={email} 
@@ -135,23 +221,26 @@ export function EmailConnectionDialog() {
                   placeholder="you@example.com" 
                 />
               </div>
+
               <div className="grid gap-2">
-                <Label>Server</Label>
+                <Label>{connectionType.toUpperCase()} Server</Label>
                 <Input 
                   value={server} 
                   onChange={(e) => setServer(e.target.value)} 
                   placeholder={`${connectionType}.example.com`} 
                 />
               </div>
+
               <div className="grid gap-2">
-                <Label>Port</Label>
+                <Label>{connectionType.toUpperCase()} Port</Label>
                 <Input 
                   type="number" 
                   value={port} 
                   onChange={(e) => setPort(e.target.value)} 
-                  placeholder={connectionType === 'imap' ? '993' : '995'} 
+                  placeholder={getDefaultPort(connectionType)} 
                 />
               </div>
+
               <div className="grid gap-2">
                 <Label>Username</Label>
                 <Input 
@@ -159,12 +248,51 @@ export function EmailConnectionDialog() {
                   onChange={(e) => setUsername(e.target.value)} 
                 />
               </div>
+
               <div className="grid gap-2">
                 <Label>Password</Label>
                 <Input 
                   type="password" 
                   value={password} 
                   onChange={(e) => setPassword(e.target.value)} 
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label>SMTP Server</Label>
+                <Input 
+                  value={smtpServer} 
+                  onChange={(e) => setSmtpServer(e.target.value)} 
+                  placeholder="smtp.example.com" 
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label>SMTP Port</Label>
+                <Input 
+                  type="number" 
+                  value={smtpPort} 
+                  onChange={(e) => setSmtpPort(e.target.value)} 
+                  placeholder={getDefaultSmtpPort()} 
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label>SMTP Username (optional)</Label>
+                <Input 
+                  value={smtpUsername} 
+                  onChange={(e) => setSmtpUsername(e.target.value)} 
+                  placeholder="Same as above if left empty"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label>SMTP Password (optional)</Label>
+                <Input 
+                  type="password" 
+                  value={smtpPassword} 
+                  onChange={(e) => setSmtpPassword(e.target.value)} 
+                  placeholder="Same as above if left empty"
                 />
               </div>
             </div>

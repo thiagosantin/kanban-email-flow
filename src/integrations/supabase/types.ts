@@ -12,33 +12,60 @@ export type Database = {
       email_accounts: {
         Row: {
           access_token: string | null
+          auth_type: string
           created_at: string | null
           email: string
+          host: string | null
           id: string
+          password: string | null
+          port: number | null
           provider: string
           refresh_token: string | null
+          smtp_host: string | null
+          smtp_password: string | null
+          smtp_port: number | null
+          smtp_username: string | null
           updated_at: string | null
           user_id: string
+          username: string | null
         }
         Insert: {
           access_token?: string | null
+          auth_type?: string
           created_at?: string | null
           email: string
+          host?: string | null
           id?: string
+          password?: string | null
+          port?: number | null
           provider: string
           refresh_token?: string | null
+          smtp_host?: string | null
+          smtp_password?: string | null
+          smtp_port?: number | null
+          smtp_username?: string | null
           updated_at?: string | null
           user_id: string
+          username?: string | null
         }
         Update: {
           access_token?: string | null
+          auth_type?: string
           created_at?: string | null
           email?: string
+          host?: string | null
           id?: string
+          password?: string | null
+          port?: number | null
           provider?: string
           refresh_token?: string | null
+          smtp_host?: string | null
+          smtp_password?: string | null
+          smtp_port?: number | null
+          smtp_username?: string | null
           updated_at?: string | null
           user_id?: string
+          username?: string | null
         }
         Relationships: []
       }
