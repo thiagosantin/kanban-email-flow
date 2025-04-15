@@ -9,7 +9,7 @@ type KanbanColumnProps = {
   title: string;
   emails: Email[];
   count: number;
-  color: "blue" | "yellow" | "purple" | "green";
+  color: "blue" | "yellow" | "purple" | "green" | "red" | "orange" | "pink";
 };
 
 export function KanbanColumn({ id, title, emails, count, color }: KanbanColumnProps) {
@@ -17,7 +17,10 @@ export function KanbanColumn({ id, title, emails, count, color }: KanbanColumnPr
     blue: "bg-kanban-blue text-white",
     yellow: "bg-kanban-yellow text-black",
     purple: "bg-kanban-purple text-white",
-    green: "bg-kanban-green text-white"
+    green: "bg-kanban-green text-white",
+    red: "bg-red-500 text-white",
+    orange: "bg-orange-500 text-white",
+    pink: "bg-pink-500 text-white"
   };
 
   return (

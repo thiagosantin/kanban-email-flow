@@ -11,8 +11,13 @@ import {
   Settings, 
   User
 } from "lucide-react";
+import { ReactNode } from "react";
 
-export function KanbanHeader() {
+interface KanbanHeaderProps {
+  children?: ReactNode;
+}
+
+export function KanbanHeader({ children }: KanbanHeaderProps) {
   return (
     <header className="bg-white border-b border-kanban-gray-200 p-3 sticky top-0 z-10">
       <div className="flex items-center justify-between">
@@ -36,6 +41,12 @@ export function KanbanHeader() {
         </div>
 
         <div className="flex items-center gap-1">
+          {children && (
+            <div className="mr-2 hidden md:block">
+              {children}
+            </div>
+          )}
+          
           <Button variant="ghost" size="icon" className="text-kanban-gray-600 hover:text-kanban-blue">
             <Filter className="h-5 w-5" />
           </Button>
@@ -56,6 +67,12 @@ export function KanbanHeader() {
           </Button>
         </div>
       </div>
+      
+      {children && (
+        <div className="mt-2 md:hidden p-2 flex overflow-x-auto">
+          {children}
+        </div>
+      )}
     </header>
   );
 }

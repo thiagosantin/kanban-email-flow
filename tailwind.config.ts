@@ -69,6 +69,8 @@ export default {
 					"green": "#10B981",
 					"yellow": "#F59E0B",
 					"purple": "#8B5CF6",
+					"orange": "#F97316",
+					"pink": "#EC4899",
 					"gray-100": "#F1F5F9",
 					"gray-200": "#E2E8F0",
 					"gray-300": "#CBD5E1",

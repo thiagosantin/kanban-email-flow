@@ -1,8 +1,24 @@
 
+import { useState } from "react";
 import { DragDropContext } from "react-beautiful-dnd";
 import { KanbanColumn } from "@/components/KanbanColumn";
 import { Loader2 } from "lucide-react";
 import type { Email, EmailStatus } from "@/types/email";
+import { useIsMobile } from "@/hooks/use-mobile";
+
+// Mapeamento entre EmailStatus e cores
+const statusColorMap = {
+  inbox: "blue" as const,
+  awaiting: "yellow" as const,
+  processing: "purple" as const,
+  done: "green" as const
+};
+
+type ColumnConfig = {
+  id: string;
+  title: string;
+  color: "blue" | "yellow" | "purple" | "green" | "red" | "orange" | "pink";
+};
 
 interface KanbanBoardProps {
   emails: {
@@ -13,9 +29,30 @@ interface KanbanBoardProps {
   };
   isLoading: boolean;
   onDragEnd: (result: any) => void;
+  columns?: ColumnConfig[]; // Configuração de colunas opcional
+  onUpdateColumns?: (columns: ColumnConfig[]) => void; // Callback para atualizar colunas
 }
 
-export function KanbanBoard({ emails, isLoading, onDragEnd }: KanbanBoardProps) {
+export function KanbanBoard({ 
+  emails, 
+  isLoading, 
+  onDragEnd,
+  columns: externalColumns,
+  onUpdateColumns
+}: KanbanBoardProps) {
+  // Colunas padrão baseadas nas status de email
+  const defaultColumns: ColumnConfig[] = [
+    { id: "inbox", title: "Caixa de Entrada", color: statusColorMap.inbox },
+    { id: "awaiting", title: "Aguardando", color: statusColorMap.awaiting },
+    { id: "processing", title: "Em Processamento", color: statusColorMap.processing },
+    { id: "done", title: "Concluído", color: statusColorMap.done }
+  ];
+
+  // Use colunas externas se fornecidas, caso contrário use as padrão
+  const [columns] = useState<ColumnConfig[]>(externalColumns || defaultColumns);
+  
+  const isMobile = useIsMobile();
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -27,35 +64,20 @@ export function KanbanBoard({ emails, isLoading, onDragEnd }: KanbanBoardProps) 
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
-      <div className="flex space-x-4 h-full min-w-[900px]">
-        <KanbanColumn 
-          id="inbox" 
-          title="Caixa de Entrada" 
-          emails={emails.inbox} 
-          count={emails.inbox.length}
-          color="blue"
-        />
-        <KanbanColumn 
-          id="awaiting" 
-          title="Aguardando" 
-          emails={emails.awaiting} 
-          count={emails.awaiting.length}
-          color="yellow"
-        />
-        <KanbanColumn 
-          id="processing" 
-          title="Em Processamento" 
-          emails={emails.processing} 
-          count={emails.processing.length}
-          color="purple"
-        />
-        <KanbanColumn 
-          id="done" 
-          title="Concluído" 
-          emails={emails.done} 
-          count={emails.done.length}
-          color="green"
-        />
+      <div className={`flex ${isMobile ? 'flex-col space-y-4' : 'space-x-4'} h-full ${!isMobile && 'min-w-[900px]'}`}>
+        {columns.map(column => {
+          const columnEmails = emails[column.id as EmailStatus] || [];
+          return (
+            <KanbanColumn 
+              key={column.id}
+              id={column.id}
+              title={column.title}
+              emails={columnEmails}
+              count={columnEmails.length}
+              color={column.color}
+            />
+          );
+        })}
       </div>
     </DragDropContext>
   );
