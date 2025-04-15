@@ -17,7 +17,7 @@ const Index = () => {
         </p>
         <div className="space-x-4">
           <Button 
-            onClick={() => navigate("/login")} 
+            onClick={() => navigate("/auth")} 
             className="bg-kanban-blue hover:bg-kanban-blue/90 text-white px-8 py-2 rounded-md text-lg"
           >
             Começar agora
