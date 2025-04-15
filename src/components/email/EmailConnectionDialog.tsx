@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus, Mail } from "lucide-react";
@@ -67,19 +66,6 @@ export function EmailConnectionDialog() {
       
       if (!user) {
         toast.error('You must be logged in to add an email account');
-        return;
-      }
-
-      // Verificar se já existe uma conta com o mesmo email para este usuário
-      const { data: existingAccounts } = await supabase
-        .from('email_accounts')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('email', email);
-
-      if (existingAccounts && existingAccounts.length > 0) {
-        toast.error('This email address is already connected to your account');
-        setLoading(false);
         return;
       }
 
