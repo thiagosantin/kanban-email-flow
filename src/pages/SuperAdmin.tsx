@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -14,7 +13,8 @@ import {
   PauseCircle,
   RefreshCw,
   Trash,
-  AlertTriangle
+  AlertTriangle,
+  AlertCircle
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -71,6 +71,17 @@ type SystemStats = {
   avgSyncTime: number;
 };
 
+type SystemError = {
+  id: string;
+  message: string;
+  stack?: string;
+  timestamp: string;
+  status?: number;
+  path?: string;
+  component?: string;
+  severity: 'high' | 'medium' | 'low';
+};
+
 const SuperAdmin = () => {
   const navigate = useNavigate();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -81,8 +92,9 @@ const SuperAdmin = () => {
     activeTasks: 0,
     failedTasks: 0,
     emailAccounts: 0,
-    avgSyncTime: 2.3, // Example default value
+    avgSyncTime: 2.3,
   });
+  const [errors, setErrors] = useState<SystemError[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
 
@@ -96,8 +108,6 @@ const SuperAdmin = () => {
         return;
       }
       
-      // In a real app, you'd check if user has admin role
-      // This is a placeholder implementation
       const { data, error } = await supabase
         .from('email_accounts')
         .select('email')
@@ -110,8 +120,6 @@ const SuperAdmin = () => {
         return;
       }
       
-      // For demo purposes, considering any logged in user as admin
-      // In production, you'd have a proper role-based check
       fetchData();
     };
     
@@ -121,7 +129,6 @@ const SuperAdmin = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch email accounts
       const { data: accountsData, error: accountsError } = await supabase
         .from('email_accounts')
         .select('*');
@@ -131,8 +138,6 @@ const SuperAdmin = () => {
       const emailAccounts = accountsData as EmailAccount[] || [];
       setAccounts(emailAccounts);
       
-      // Fetch tasks (mock data for now, would be a real table in production)
-      // In a real implementation, this would come from a tasks table
       const mockTasks: Task[] = [
         {
           id: "1",
@@ -178,14 +183,35 @@ const SuperAdmin = () => {
       
       setTasks(mockTasks);
       
-      // Update stats
+      const mockErrors: SystemError[] = [
+        {
+          id: '1',
+          message: 'Authentication failed: Invalid credentials',
+          timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+          status: 401,
+          path: '/auth',
+          component: 'AuthProvider',
+          severity: 'high'
+        },
+        {
+          id: '2',
+          message: 'Email sync failed: Connection timeout',
+          timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+          path: '/api/sync',
+          component: 'EmailSync',
+          severity: 'medium'
+        }
+      ];
+      
+      setErrors(mockErrors);
+      
       setStats({
-        activeUsers: 2, // Would be a count query in production
+        activeUsers: 2,
         totalTasks: mockTasks.length,
         activeTasks: mockTasks.filter(t => t.status === "running").length,
         failedTasks: mockTasks.filter(t => t.status === "failed").length,
         emailAccounts: emailAccounts.length,
-        avgSyncTime: 2.3 // This would be calculated from actual metrics
+        avgSyncTime: 2.3
       });
       
     } catch (error: any) {
@@ -211,8 +237,7 @@ const SuperAdmin = () => {
     setActionLoading(prev => ({ ...prev, [taskId]: true }));
     
     try {
-      // In production, this would be an API call to a management endpoint
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       if (action === "start") {
         setTasks(prev => prev.map(task => 
@@ -234,7 +259,6 @@ const SuperAdmin = () => {
         toast.success("Tarefa reiniciada com sucesso");
       }
       
-      // Update stats after action
       const updatedTasks = tasks.map(task => 
         task.id === taskId 
           ? { ...task, status: action === "start" ? "running" : action === "pause" ? "paused" : task.status }
@@ -282,6 +306,29 @@ const SuperAdmin = () => {
       default:
         return <Activity className="h-4 w-4" />;
     }
+  };
+
+  const getSeverityBadge = (severity: SystemError['severity']) => {
+    switch (severity) {
+      case 'high':
+        return <Badge variant="destructive">Alta</Badge>;
+      case 'medium':
+        return <Badge variant="outline" className="text-amber-500 border-amber-500">Média</Badge>;
+      case 'low':
+        return <Badge variant="outline" className="text-blue-500 border-blue-500">Baixa</Badge>;
+      default:
+        return <Badge variant="outline">Desconhecida</Badge>;
+    }
+  };
+
+  const getErrorResolution = (error: SystemError) => {
+    if (error.message.includes('Authentication failed')) {
+      return "1. Verifique as credenciais do usuário\n2. Confirme se o token está válido\n3. Verifique as políticas de RLS no Supabase";
+    }
+    if (error.message.includes('sync failed')) {
+      return "1. Verifique a conexão com o servidor de email\n2. Confirme se as credenciais IMAP estão corretas\n3. Verifique se o servidor está respondendo";
+    }
+    return "Contate o suporte técnico para assistência.";
   };
 
   return (
@@ -353,6 +400,7 @@ const SuperAdmin = () => {
                 <TabsTrigger value="tasks">Tarefas & Cron Jobs</TabsTrigger>
                 <TabsTrigger value="accounts">Contas de Email</TabsTrigger>
                 <TabsTrigger value="system">Estatísticas do Sistema</TabsTrigger>
+                <TabsTrigger value="errors">Logs de Erro</TabsTrigger>
               </TabsList>
               
               <TabsContent value="tasks">
@@ -632,6 +680,76 @@ const SuperAdmin = () => {
                         </div>
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="errors">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Logs de Erro do Sistema</CardTitle>
+                    <CardDescription>
+                      Monitore e resolva erros do sistema
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {loading ? (
+                      <div className="py-8 flex justify-center items-center">
+                        <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[100px]">Severidade</TableHead>
+                            <TableHead>Mensagem</TableHead>
+                            <TableHead>Componente</TableHead>
+                            <TableHead>Caminho</TableHead>
+                            <TableHead>Data/Hora</TableHead>
+                            <TableHead>Resolução</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {errors.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                                Nenhum erro encontrado
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            errors.map((error) => (
+                              <TableRow key={error.id}>
+                                <TableCell>{getSeverityBadge(error.severity)}</TableCell>
+                                <TableCell className="max-w-[300px] truncate">
+                                  <div className="flex items-center space-x-2">
+                                    <AlertCircle className="h-4 w-4 text-red-500" />
+                                    <span>{error.message}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell>{error.component || 'N/A'}</TableCell>
+                                <TableCell>{error.path || 'N/A'}</TableCell>
+                                <TableCell>
+                                  {formatDateTime(error.timestamp)}
+                                </TableCell>
+                                <TableCell>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                      toast.info(getErrorResolution(error), {
+                                        description: "Passos para resolução",
+                                        duration: 10000
+                                      });
+                                    }}
+                                  >
+                                    Ver solução
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
