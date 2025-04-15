@@ -10,8 +10,8 @@ import {
 import { Label } from "@/components/ui/label";
 
 interface ConnectionTypeSelectorProps {
-  connectionType: 'oauth2' | 'basic';
-  setConnectionType: (value: 'oauth2' | 'basic') => void;
+  connectionType: 'oauth2' | 'imap' | 'pop3';
+  setConnectionType: (value: 'oauth2' | 'imap' | 'pop3') => void;
 }
 
 export function ConnectionTypeSelector({ 
@@ -20,17 +20,18 @@ export function ConnectionTypeSelector({
 }: ConnectionTypeSelectorProps) {
   return (
     <div className="space-y-2">
-      <Label>Connection Type</Label>
+      <Label>Tipo de Conexão</Label>
       <Select 
         value={connectionType} 
-        onValueChange={(value: 'oauth2' | 'basic') => setConnectionType(value)}
+        onValueChange={(value: 'oauth2' | 'imap' | 'pop3') => setConnectionType(value)}
       >
         <SelectTrigger>
-          <SelectValue placeholder="Select connection type" />
+          <SelectValue placeholder="Selecione o tipo de conexão" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="oauth2">OAuth2 (Gmail, Outlook)</SelectItem>
-          <SelectItem value="basic">IMAP/SMTP</SelectItem>
+          <SelectItem value="imap">IMAP</SelectItem>
+          <SelectItem value="pop3">POP3</SelectItem>
         </SelectContent>
       </Select>
     </div>

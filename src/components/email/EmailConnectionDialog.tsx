@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus, Mail } from "lucide-react";
@@ -7,6 +8,7 @@ import { toast } from "sonner";
 import { OAuthButtons } from './OAuthButtons';
 import { ManualConnectionForm } from './ManualConnectionForm';
 import { AuthRequiredDialog } from './AuthRequiredDialog';
+import { ConnectionTypeSelector } from './ConnectionTypeSelector';
 import { SyncIntervalSelector } from './SyncIntervalSelector';
 import { TestConnectionButton } from './TestConnectionButton';
 
@@ -65,7 +67,7 @@ export function EmailConnectionDialog() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        toast.error('You must be logged in to add an email account');
+        toast.error('Você precisa estar logado para adicionar uma conta de email');
         return;
       }
 
@@ -88,11 +90,11 @@ export function EmailConnectionDialog() {
 
       if (error) throw error;
 
-      toast.success('Email account connected successfully');
+      toast.success('Conta de email conectada com sucesso');
       setOpen(false);
       resetForm();
     } catch (error: any) {
-      toast.error('Failed to connect account: ' + error.message);
+      toast.error('Falha ao conectar conta: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -133,12 +135,12 @@ export function EmailConnectionDialog() {
           onClick={(e) => {
             if (!isLoggedIn) {
               e.preventDefault();
-              toast.error('You must be logged in to add an email account');
+              toast.error('Você precisa estar logado para adicionar uma conta de email');
               return;
             }
           }}
         >
-          <Plus className="mr-2 h-4 w-4" /> Connect Email Account
+          <Plus className="mr-2 h-4 w-4" /> Conectar Conta de Email
         </Button>
       </DialogTrigger>
       
@@ -147,9 +149,14 @@ export function EmailConnectionDialog() {
       ) : (
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Connect Email Account</DialogTitle>
+            <DialogTitle>Conectar Conta de Email</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            <ConnectionTypeSelector 
+              connectionType={connectionType}
+              setConnectionType={handleConnectionTypeChange}
+            />
+            
             {connectionType === 'oauth2' ? (
               <OAuthButtons loading={loading} onSuccess={() => setOpen(false)} />
             ) : (
@@ -191,7 +198,7 @@ export function EmailConnectionDialog() {
                   />
                   <Button onClick={handleManualConnect} disabled={loading}>
                     <Mail className="mr-2 h-4 w-4" />
-                    {loading ? "Connecting..." : "Connect Account"}
+                    {loading ? "Conectando..." : "Conectar Conta"}
                   </Button>
                 </div>
               </>

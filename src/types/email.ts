@@ -4,7 +4,7 @@ export interface EmailAccount {
   email: string;
   created_at: string;
   updated_at: string;
-  auth_type: 'oauth2' | 'basic' | 'imap' | 'pop3';
+  auth_type: 'oauth2' | 'imap' | 'pop3';
   host?: string | null;
   port?: number | null;
   username?: string | null;
