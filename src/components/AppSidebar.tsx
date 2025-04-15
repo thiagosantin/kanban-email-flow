@@ -1,4 +1,16 @@
-
+import { 
+  Archive, 
+  Calendar, 
+  Cog, 
+  Inbox, 
+  Mail, 
+  MessageSquare, 
+  Plus, 
+  Send, 
+  Shield, 
+  Star, 
+  Trash 
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -12,23 +24,14 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { 
-  Archive, 
-  Calendar, 
-  Cog, 
-  Inbox, 
-  Mail, 
-  MessageSquare, 
-  Plus, 
-  Send, 
-  Star, 
-  Trash 
-} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 
 export function AppSidebar() {
   const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false);
   
   // Items de menu principal
   const mainItems = [
@@ -79,6 +82,23 @@ export function AppSidebar() {
       color: "text-blue-500"
     }
   ];
+
+  useEffect(() => {
+    const checkAdminAccess = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        // In a real app, replace this with a proper role check from your auth system
+        if (user) {
+          setIsAdmin(true);
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+      }
+    };
+
+    checkAdminAccess();
+  }, []);
 
   return (
     <Sidebar>
@@ -160,6 +180,17 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              
+              {isAdmin && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link to="/admin" className="flex items-center">
+                      <Shield className="h-5 w-5 mr-3 text-red-500" />
+                      <span>Painel Admin</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
