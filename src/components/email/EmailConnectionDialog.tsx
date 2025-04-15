@@ -1,15 +1,15 @@
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Mail } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { OAuthButtons } from './OAuthButtons';
 import { ManualConnectionForm } from './ManualConnectionForm';
-import { Label } from '@/components/ui/label';
 import { AuthRequiredDialog } from './AuthRequiredDialog';
+import { SyncIntervalSelector } from './SyncIntervalSelector';
+import { TestConnectionButton } from './TestConnectionButton';
 
 type ConnectionType = 'oauth2' | 'imap' | 'pop3';
 type Provider = 'gmail' | 'outlook' | 'custom';
@@ -26,6 +26,7 @@ export function EmailConnectionDialog() {
   const [smtpPort, setSmtpPort] = useState('');
   const [smtpUsername, setSmtpUsername] = useState('');
   const [smtpPassword, setSmtpPassword] = useState('');
+  const [syncInterval, setSyncInterval] = useState(15);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -81,7 +82,9 @@ export function EmailConnectionDialog() {
         smtp_host: smtpServer,
         smtp_port: smtpPort ? parseInt(smtpPort) : null,
         smtp_username: smtpUsername || username,
-        smtp_password: smtpPassword || password
+        smtp_password: smtpPassword || password,
+        sync_interval_minutes: syncInterval,
+        last_synced: null
       });
 
       if (error) throw error;
@@ -106,6 +109,20 @@ export function EmailConnectionDialog() {
     setSmtpPort('');
     setSmtpUsername('');
     setSmtpPassword('');
+    setSyncInterval(15);
+  };
+
+  const emailConfig = {
+    provider,
+    email,
+    host: server,
+    port,
+    username,
+    password,
+    smtp_host: smtpServer,
+    smtp_port: smtpPort,
+    smtp_username: smtpUsername,
+    smtp_password: smtpPassword
   };
 
   return (
@@ -134,50 +151,51 @@ export function EmailConnectionDialog() {
             <DialogTitle>Connect Email Account</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid gap-2">
-              <Label>Connection Type</Label>
-              <Select 
-                value={connectionType} 
-                onValueChange={(value: ConnectionType) => handleConnectionTypeChange(value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select connection type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="oauth2">OAuth (Gmail, Outlook)</SelectItem>
-                  <SelectItem value="imap">IMAP</SelectItem>
-                  <SelectItem value="pop3">POP3</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
             {connectionType === 'oauth2' ? (
               <OAuthButtons loading={loading} onSuccess={() => setOpen(false)} />
             ) : (
-              <ManualConnectionForm
-                provider={provider}
-                setProvider={setProvider}
-                email={email}
-                setEmail={setEmail}
-                server={server}
-                setServer={setServer}
-                port={port}
-                setPort={setPort}
-                username={username}
-                setUsername={setUsername}
-                password={password}
-                setPassword={setPassword}
-                smtpServer={smtpServer}
-                setSmtpServer={setSmtpServer}
-                smtpPort={smtpPort}
-                setSmtpPort={setSmtpPort}
-                smtpUsername={smtpUsername}
-                setSmtpUsername={setSmtpUsername}
-                smtpPassword={smtpPassword}
-                setSmtpPassword={setSmtpPassword}
-                onSubmit={handleManualConnect}
-                loading={loading}
-              />
+              <>
+                <ManualConnectionForm
+                  provider={provider}
+                  setProvider={setProvider}
+                  email={email}
+                  setEmail={setEmail}
+                  server={server}
+                  setServer={setServer}
+                  port={port}
+                  setPort={setPort}
+                  username={username}
+                  setUsername={setUsername}
+                  password={password}
+                  setPassword={setPassword}
+                  smtpServer={smtpServer}
+                  setSmtpServer={setSmtpServer}
+                  smtpPort={smtpPort}
+                  setSmtpPort={setSmtpPort}
+                  smtpUsername={smtpUsername}
+                  setSmtpUsername={setSmtpUsername}
+                  smtpPassword={smtpPassword}
+                  setSmtpPassword={setSmtpPassword}
+                  onSubmit={handleManualConnect}
+                  loading={loading}
+                />
+                <div className="pt-4 border-t">
+                  <SyncIntervalSelector
+                    value={syncInterval}
+                    onChange={setSyncInterval}
+                  />
+                </div>
+                <div className="flex flex-col md:flex-row gap-4 justify-end">
+                  <TestConnectionButton
+                    emailConfig={emailConfig}
+                    disabled={loading}
+                  />
+                  <Button onClick={handleManualConnect} disabled={loading}>
+                    <Mail className="mr-2 h-4 w-4" />
+                    {loading ? "Connecting..." : "Connect Account"}
+                  </Button>
+                </div>
+              </>
             )}
           </div>
         </DialogContent>
