@@ -70,6 +70,19 @@ export function EmailConnectionDialog() {
         return;
       }
 
+      // Verificar se já existe uma conta com o mesmo email para este usuário
+      const { data: existingAccounts } = await supabase
+        .from('email_accounts')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('email', email);
+
+      if (existingAccounts && existingAccounts.length > 0) {
+        toast.error('This email address is already connected to your account');
+        setLoading(false);
+        return;
+      }
+
       const { error } = await supabase.from('email_accounts').insert({
         user_id: user.id,
         provider,
