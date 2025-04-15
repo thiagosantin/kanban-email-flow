@@ -25,39 +25,42 @@ import {
   Trash 
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Link, useNavigate } from "react-router-dom";
 
 export function AppSidebar() {
+  const navigate = useNavigate();
+  
   // Items de menu principal
   const mainItems = [
     {
       title: "Caixa de Entrada",
       icon: Inbox,
       unread: 3,
-      url: "#"
+      url: "/dashboard"
     },
     {
       title: "Enviados",
       icon: Send,
       unread: 0,
-      url: "#"
+      url: "/dashboard"
     },
     {
       title: "Favoritos",
       icon: Star,
       unread: 0, 
-      url: "#"
+      url: "/dashboard"
     },
     {
       title: "Arquivados",
       icon: Archive,
       unread: 0,
-      url: "#"
+      url: "/dashboard"
     },
     {
       title: "Lixeira",
       icon: Trash,
       unread: 0,
-      url: "#"
+      url: "/dashboard"
     }
   ];
 
@@ -66,13 +69,13 @@ export function AppSidebar() {
     {
       title: "Gmail - Pessoal",
       icon: Mail,
-      url: "#",
+      url: "/dashboard",
       color: "text-red-500"
     },
     {
       title: "Outlook - Trabalho",
       icon: Mail,
-      url: "#",
+      url: "/dashboard",
       color: "text-blue-500"
     }
   ];
@@ -101,7 +104,7 @@ export function AppSidebar() {
               {mainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <a href={item.url} className="flex justify-between">
+                    <Link to={item.url} className="flex justify-between">
                       <div className="flex items-center">
                         <item.icon className="h-5 w-5 mr-3" />
                         <span>{item.title}</span>
@@ -111,7 +114,7 @@ export function AppSidebar() {
                           {item.unread}
                         </Badge>
                       )}
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -126,10 +129,10 @@ export function AppSidebar() {
               {accountItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <a href={item.url}>
+                    <Link to={item.url}>
                       <item.icon className={`h-5 w-5 mr-3 ${item.color}`} />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -143,18 +146,18 @@ export function AppSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <a href="#">
+                  <Link to="/dashboard">
                     <Calendar className="h-5 w-5 mr-3" />
                     <span>Calendário</span>
-                  </a>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <a href="#">
+                  <Link to="/dashboard">
                     <MessageSquare className="h-5 w-5 mr-3" />
                     <span>Chat</span>
-                  </a>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -163,11 +166,9 @@ export function AppSidebar() {
       </SidebarContent>
       
       <SidebarFooter>
-        <Button variant="ghost" className="w-full justify-start" asChild>
-          <a href="/settings">
-            <Cog className="h-5 w-5 mr-3" />
-            <span>Configurações</span>
-          </a>
+        <Button variant="ghost" className="w-full justify-start" onClick={() => navigate("/settings")}>
+          <Cog className="h-5 w-5 mr-3" />
+          <span>Configurações</span>
         </Button>
       </SidebarFooter>
     </Sidebar>
