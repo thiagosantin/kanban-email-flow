@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -45,19 +46,42 @@ export function OAuthConfigurationForm({ provider, config, onSuccess }: OAuthCon
 
   const onSubmit = async (data: OAuthConfigFormData) => {
     try {
-      const { error } = await supabase
+      // First check if configuration already exists
+      const { data: existingConfig, error: fetchError } = await supabase
         .from('oauth_configurations')
-        .upsert({
-          provider,
-          client_id: data.clientId,
-          client_secret: data.clientSecret,
-          redirect_uri: data.redirectUri,
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'provider'
-        });
-
-      if (error) throw error;
+        .select('id')
+        .eq('provider', provider)
+        .maybeSingle();
+      
+      if (fetchError) throw fetchError;
+      
+      let result;
+      
+      if (existingConfig) {
+        // Update existing configuration
+        result = await supabase
+          .from('oauth_configurations')
+          .update({
+            client_id: data.clientId,
+            client_secret: data.clientSecret,
+            redirect_uri: data.redirectUri,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('provider', provider);
+      } else {
+        // Insert new configuration
+        result = await supabase
+          .from('oauth_configurations')
+          .insert({
+            provider,
+            client_id: data.clientId,
+            client_secret: data.clientSecret,
+            redirect_uri: data.redirectUri,
+            updated_at: new Date().toISOString(),
+          });
+      }
+      
+      if (result.error) throw result.error;
       
       toast.success('OAuth configuration saved successfully');
       onSuccess();
