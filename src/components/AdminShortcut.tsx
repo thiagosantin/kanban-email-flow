@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldAlert, LogOut } from 'lucide-react';
+import { ShieldAlert, LogOut, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -31,6 +31,22 @@ export function AdminShortcut() {
   return (
     <TooltipProvider>
       <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full shadow-lg hover:shadow-xl"
+              onClick={() => navigate('/admin')}
+            >
+              <Shield className="h-5 w-5 text-blue-500" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Super Admin</p>
+          </TooltipContent>
+        </Tooltip>
+
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
