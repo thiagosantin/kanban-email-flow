@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { TestTube } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { EmailAccount } from '@/types/email';
 
 interface TestConnectionButtonProps {
   emailConfig: {
@@ -51,7 +52,7 @@ export function TestConnectionButton({ emailConfig, disabled }: TestConnectionBu
       // This way we avoid the unique constraint violation
       const testEmail = `${emailConfig.email}.test-${Date.now()}`;
       
-      const testResult = await supabase.from('email_accounts').insert({
+      const { data: testData, error: testError } = await supabase.from('email_accounts').insert({
         user_id: user.id,
         provider: emailConfig.provider,
         email: testEmail, // Use the unique test email
@@ -66,13 +67,14 @@ export function TestConnectionButton({ emailConfig, disabled }: TestConnectionBu
         smtp_password: emailConfig.smtp_password || emailConfig.password,
         sync_interval_minutes: 15,
         last_synced: null
-      });
+      }).select();
 
-      if (testResult.error) throw testResult.error;
+      if (testError) throw testError;
       
       // If the test was successful, delete the test account to avoid cluttering the database
-      if (testResult.data && testResult.data.length > 0) {
-        await supabase.from('email_accounts').delete().eq('id', testResult.data[0].id);
+      if (testData && testData.length > 0) {
+        const testAccountId = testData[0].id;
+        await supabase.from('email_accounts').delete().eq('id', testAccountId);
       }
       
       toast.success('Connection test successful');
