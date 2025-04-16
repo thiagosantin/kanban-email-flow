@@ -48,6 +48,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { SuperAdminSidebar } from "@/components/SuperAdminSidebar";
 import { OAuthHelpDialog } from "@/components/OAuthHelpDialog";
 import { OAuthConfigurationForm } from "@/components/admin/OAuthConfigurationForm";
+import { EmailSyncManager } from "@/components/admin/EmailSyncManager";
 
 type Task = {
   id: string;
@@ -369,6 +370,7 @@ const SuperAdmin = () => {
               <TabsList className="mb-4">
                 <TabsTrigger value="tasks">Tarefas & Cron Jobs</TabsTrigger>
                 <TabsTrigger value="accounts">Contas de Email</TabsTrigger>
+                <TabsTrigger value="sync">Sincronização</TabsTrigger>
                 <TabsTrigger value="system">Estatísticas do Sistema</TabsTrigger>
               </TabsList>
               
@@ -554,6 +556,10 @@ const SuperAdmin = () => {
                     )}
                   </CardContent>
                 </Card>
+              </TabsContent>
+              
+              <TabsContent value="sync">
+                <EmailSyncManager />
               </TabsContent>
               
               <TabsContent value="system">
