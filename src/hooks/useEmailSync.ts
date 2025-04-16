@@ -23,26 +23,24 @@ export function useEmailSync() {
         
         console.log('Syncing emails for account:', accountId);
         
-        // Use direct fetch instead of supabase.functions.invoke
-        const response = await fetch(`${window.location.origin}/api/sync-emails`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          },
-          body: JSON.stringify({ account_id: accountId })
+        // Use direct Supabase Functions invoke method
+        const { data, error } = await supabase.functions.invoke('sync-emails', {
+          body: { account_id: accountId }
         });
         
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Error response from Edge Function:', errorText);
-          throw new Error(`Failed to sync emails: HTTP ${response.status} - ${errorText}`);
+        if (error) {
+          console.error('Error response from Edge Function:', error);
+          throw new Error(`Failed to sync emails: ${error.message}`);
         }
         
-        const data = await response.json();
-        if (!data || data.error) {
-          console.error('Edge Function returned error:', data?.error);
-          throw new Error(`Failed to sync emails: ${data?.error || 'Unknown error'}`);
+        if (!data) {
+          console.error('Edge Function returned no data');
+          throw new Error('Failed to sync emails: No data returned');
+        }
+        
+        if (data.error) {
+          console.error('Edge Function returned error:', data.error);
+          throw new Error(`Failed to sync emails: ${data.error}`);
         }
         
         return data;
@@ -89,26 +87,24 @@ export function useEmailSync() {
         
         console.log('Syncing folders for account:', accountId);
         
-        // Use direct fetch instead of supabase.functions.invoke
-        const response = await fetch(`${window.location.origin}/api/sync-folders`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          },
-          body: JSON.stringify({ account_id: accountId })
+        // Use direct Supabase Functions invoke method
+        const { data, error } = await supabase.functions.invoke('sync-folders', {
+          body: { account_id: accountId }
         });
         
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Error response from Edge Function:', errorText);
-          throw new Error(`Failed to sync folders: HTTP ${response.status} - ${errorText}`);
+        if (error) {
+          console.error('Error response from Edge Function:', error);
+          throw new Error(`Failed to sync folders: ${error.message}`);
         }
         
-        const data = await response.json();
-        if (!data || data.error) {
-          console.error('Edge Function returned error:', data?.error);
-          throw new Error(`Failed to sync folders: ${data?.error || 'Unknown error'}`);
+        if (!data) {
+          console.error('Edge Function returned no data');
+          throw new Error('Failed to sync folders: No data returned');
+        }
+        
+        if (data.error) {
+          console.error('Edge Function returned error:', data.error);
+          throw new Error(`Failed to sync folders: ${data.error}`);
         }
         
         return data;
