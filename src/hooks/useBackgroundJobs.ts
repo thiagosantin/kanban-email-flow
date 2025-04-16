@@ -27,8 +27,9 @@ export function useBackgroundJobs() {
         throw error;
       }
       
-      // Cast the data to match our expected type
-      return (data || []) as BackgroundJobWithAccount[];
+      // Safely cast the data with proper type assertion
+      const typedData = data as unknown as BackgroundJobWithAccount[];
+      return typedData || [];
     }
   });
 
@@ -75,7 +76,6 @@ export function useBackgroundJobs() {
     }
   });
 
-  // Fixed this mutation to not use RPC since it's not in our type definition yet
   const scheduleEmailSync = useMutation({
     mutationFn: async ({ accountId, schedule }: { accountId: string; schedule?: string }) => {
       // Using functions.invoke instead of rpc
