@@ -257,6 +257,36 @@ export type Database = {
         }
         Relationships: []
       }
+      system_logs: {
+        Row: {
+          created_at: string | null
+          id: string
+          level: Database["public"]["Enums"]["log_level"]
+          message: string
+          metadata: Json | null
+          source: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          level?: Database["public"]["Enums"]["log_level"]
+          message: string
+          metadata?: Json | null
+          source?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          level?: Database["public"]["Enums"]["log_level"]
+          message?: string
+          metadata?: Json | null
+          source?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -290,6 +320,15 @@ export type Database = {
       is_admin: {
         Args: { user_id: string }
         Returns: boolean
+      }
+      log_system_event: {
+        Args: {
+          p_level: Database["public"]["Enums"]["log_level"]
+          p_message: string
+          p_metadata?: Json
+          p_source?: string
+        }
+        Returns: string
       }
       revoke_admin_role: {
         Args: { target_user_id: string }
@@ -330,6 +369,7 @@ export type Database = {
         | "spam"
         | "archive"
         | "custom"
+      log_level: "info" | "warning" | "error" | "debug"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -456,6 +496,7 @@ export const Constants = {
         "archive",
         "custom",
       ],
+      log_level: ["info", "warning", "error", "debug"],
     },
   },
 } as const

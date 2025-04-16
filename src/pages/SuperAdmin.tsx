@@ -370,6 +370,7 @@ const SuperAdmin = () => {
                 <TabsTrigger value="tasks">Tarefas & Cron Jobs</TabsTrigger>
                 <TabsTrigger value="accounts">Contas de Email</TabsTrigger>
                 <TabsTrigger value="system">Estatísticas do Sistema</TabsTrigger>
+                <TabsTrigger value="logs">Logs do Sistema</TabsTrigger>
               </TabsList>
               
               <TabsContent value="tasks">
@@ -648,6 +649,20 @@ const SuperAdmin = () => {
                         </div>
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="logs">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Logs do Sistema</CardTitle>
+                    <CardDescription>
+                      Visualize e monitore todos os logs do sistema
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <SystemLogsViewer />
                   </CardContent>
                 </Card>
               </TabsContent>
