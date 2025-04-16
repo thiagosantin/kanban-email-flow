@@ -69,6 +69,7 @@ export interface Database extends GeneratedDatabase {
           created_at?: string;
           updated_at?: string | null;
         };
+        Relationships: []; // Added this to match the generated interface
       };
       email_folders: {
         Row: {
@@ -104,6 +105,7 @@ export interface Database extends GeneratedDatabase {
           created_at?: string;
           updated_at?: string | null;
         };
+        Relationships: []; // Added this to match the generated interface
       };
       emails: {
         Row: {
@@ -163,6 +165,7 @@ export interface Database extends GeneratedDatabase {
           created_at?: string | null;
           updated_at?: string | null;
         };
+        Relationships: []; // Added this to match the generated interface
       };
       background_jobs: {
         Row: {
@@ -207,6 +210,7 @@ export interface Database extends GeneratedDatabase {
           next_run_at?: string | null;
           schedule?: string | null;
         };
+        Relationships: []; // Added this to match the generated interface
       };
       user_roles: {
         Row: {
@@ -224,6 +228,7 @@ export interface Database extends GeneratedDatabase {
           user_id?: string;
           role?: string;
         };
+        Relationships: []; // Added this to match the generated interface
       };
       user_admin_relationships: {
         Row: {
@@ -244,6 +249,7 @@ export interface Database extends GeneratedDatabase {
           user_id?: string;
           created_at?: string;
         };
+        Relationships: []; // Added this to match the generated interface
       };
       oauth_configurations: {
         Row: {
@@ -273,6 +279,7 @@ export interface Database extends GeneratedDatabase {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: []; // Added this to match the generated interface
       };
     };
     Views: {};
@@ -293,5 +300,7 @@ export interface Database extends GeneratedDatabase {
   };
 }
 
-// Export a supabase client with our extended types
+// Export the typed supabase client
+import { createClient } from '@supabase/supabase-js'; // Added import statement
+
 export type ExtendedClient = ReturnType<typeof createClient<Database>>;
