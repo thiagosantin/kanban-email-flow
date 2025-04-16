@@ -6,6 +6,11 @@ import { type Email } from "@/types/email";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
 
 interface EmailViewerProps {
   email: Email;
@@ -13,7 +18,24 @@ interface EmailViewerProps {
   onClose: () => void;
 }
 
+interface CustomFields {
+  notes: string;
+  monetaryValue: string;
+}
+
 export function EmailViewer({ email, isOpen, onClose }: EmailViewerProps) {
+  const [customFields, setCustomFields] = useState<CustomFields>({
+    notes: '',
+    monetaryValue: ''
+  });
+
+  const form = useForm<CustomFields>({
+    defaultValues: {
+      notes: '',
+      monetaryValue: ''
+    }
+  });
+
   const initials = email.from_email
     .split('@')[0]
     .split('.')
@@ -44,6 +66,41 @@ export function EmailViewer({ email, isOpen, onClose }: EmailViewerProps) {
     { name: "documento.pdf", size: "2.4 MB", type: "application/pdf" },
     { name: "imagem.jpg", size: "1.1 MB", type: "image/jpeg" }
   ];
+
+  const handleFieldChange = (field: keyof CustomFields, value: string) => {
+    setCustomFields(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Format monetary value as BRL currency
+  const formatCurrency = (value: string) => {
+    // Remove non-numeric characters
+    const numericValue = value.replace(/\D/g, '');
+    
+    // Convert to number and format as BRL
+    if (numericValue) {
+      const amount = parseInt(numericValue, 10) / 100;
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      }).format(amount);
+    }
+    return '';
+  };
+
+  const handleMonetaryInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Remove currency formatting for storage
+    const numericValue = value.replace(/\D/g, '');
+    handleFieldChange('monetaryValue', numericValue);
+  };
+
+  // Display formatted value
+  const displayMonetaryValue = customFields.monetaryValue 
+    ? formatCurrency(customFields.monetaryValue) 
+    : 'R$ 0,00';
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -84,6 +141,50 @@ export function EmailViewer({ email, isOpen, onClose }: EmailViewerProps) {
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-xs">{email.status}</Badge>
             {!email.read && <Badge className="bg-kanban-blue text-white text-xs">Não lido</Badge>}
+          </div>
+
+          {/* Custom fields section */}
+          <div className="rounded-md border p-4 bg-background/50">
+            <h3 className="font-medium mb-3">Campos Personalizados</h3>
+            <Form {...form}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Anotações</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Adicione anotações sobre este email..." 
+                          value={customFields.notes}
+                          onChange={(e) => handleFieldChange('notes', e.target.value)}
+                          className="resize-none"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="monetaryValue"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Valor em R$</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="R$ 0,00" 
+                          value={displayMonetaryValue}
+                          onChange={handleMonetaryInputChange}
+                          className="font-medium"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </Form>
           </div>
 
           <Separator />
