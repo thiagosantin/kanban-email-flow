@@ -96,7 +96,7 @@ export function useBackgroundJobs() {
     actionLoading,
     manageJob: manageJobMutation.mutate,
     triggerScheduledSync: triggerScheduledSync.mutate,
-    isTriggeringSync: triggerScheduledSync.isLoading,
+    isTriggeringSync: triggerScheduledSync.isPending, // Changed from isLoading to isPending
     scheduleEmailSync: scheduleEmailSync.mutate
   };
 }
