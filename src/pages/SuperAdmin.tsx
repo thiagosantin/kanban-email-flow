@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -51,7 +50,6 @@ import { OAuthHelpDialog } from "@/components/OAuthHelpDialog";
 import { OAuthConfigurationForm } from "@/components/admin/OAuthConfigurationForm";
 import { SystemLogsViewer } from "@/components/admin/SystemLogsViewer";
 
-// Interface for the UI representation of a task/job
 type Task = {
   id: string;
   name: string;
@@ -127,7 +125,6 @@ const SuperAdmin = () => {
 
       if (jobsError) throw jobsError;
       
-      // Transform the background jobs into the task format expected by the UI
       const transformedTasks: Task[] = (jobsData || []).map((job: any) => {
         const jobType = job.type === 'email_sync' ? 'sync' : 
                        (job.schedule ? 'cron' : 'background');
@@ -228,12 +225,14 @@ const SuperAdmin = () => {
     switch (status) {
       case "running":
         return <Badge className="bg-green-500">Ativo</Badge>;
-      case "paused":
-        return <Badge variant="outline" className="text-amber-500 border-amber-500">Pausado</Badge>;
+      case "pending":
+        return <Badge variant="outline" className="text-amber-500 border-amber-500">Pendente</Badge>;
       case "failed":
         return <Badge variant="destructive">Falhou</Badge>;
       case "completed":
         return <Badge className="bg-blue-500">Completo</Badge>;
+      case "cancelled":
+        return <Badge variant="outline">Cancelado</Badge>;
       default:
         return <Badge variant="outline">Desconhecido</Badge>;
     }
