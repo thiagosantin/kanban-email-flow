@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus, Mail } from "lucide-react";
@@ -71,6 +70,47 @@ export function EmailConnectionDialog() {
         return;
       }
 
+      if (!email) {
+        toast.error('Email é obrigatório');
+        return;
+      }
+
+      if (connectionType !== 'oauth2') {
+        if (!server) {
+          toast.error('Servidor é obrigatório');
+          return;
+        }
+        if (!port) {
+          toast.error('Porta é obrigatória');
+          return;
+        }
+        if (!username) {
+          toast.error('Nome de usuário é obrigatório');
+          return;
+        }
+        if (!password) {
+          toast.error('Senha é obrigatória');
+          return;
+        }
+      }
+
+      const { data: existingAccounts, error: fetchError } = await supabase
+        .from('email_accounts')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('email', email);
+
+      if (fetchError) {
+        console.error('Error checking existing accounts:', fetchError);
+        toast.error('Falha ao verificar se a conta já existe: ' + (fetchError.message || 'Erro desconhecido'));
+        return;
+      }
+
+      if (existingAccounts && existingAccounts.length > 0) {
+        toast.error('Esta conta de email já está conectada');
+        return;
+      }
+
       const { error } = await supabase.from('email_accounts').insert({
         user_id: user.id,
         provider,
@@ -88,13 +128,18 @@ export function EmailConnectionDialog() {
         last_synced: null
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error adding email account:', error);
+        toast.error('Falha ao conectar conta: ' + (error.message || 'Erro desconhecido'));
+        return;
+      }
 
       toast.success('Conta de email conectada com sucesso');
       setOpen(false);
       resetForm();
     } catch (error: any) {
-      toast.error('Falha ao conectar conta: ' + error.message);
+      console.error('Failed to connect account:', error);
+      toast.error('Falha ao conectar conta: ' + (error?.message || 'Erro desconhecido'));
     } finally {
       setLoading(false);
     }

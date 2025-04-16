@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { TestTube } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { EmailAccount } from '@/types/email';
 
 interface TestConnectionButtonProps {
   emailConfig: {
@@ -70,7 +69,7 @@ export function TestConnectionButton({ emailConfig, disabled }: TestConnectionBu
 
       if (fetchError) {
         console.error('Error checking existing accounts:', fetchError);
-        toast.error('Failed to check if account already exists');
+        toast.error('Failed to check if account already exists: ' + (fetchError.message || 'Unknown error'));
         return;
       }
 
@@ -103,7 +102,7 @@ export function TestConnectionButton({ emailConfig, disabled }: TestConnectionBu
 
       if (testError) {
         console.error('Error in test connection:', testError);
-        toast.error(`Connection test failed: ${testError.message}`);
+        toast.error(`Connection test failed: ${testError.message || 'Unknown error'}`);
         return;
       }
       
@@ -123,7 +122,7 @@ export function TestConnectionButton({ emailConfig, disabled }: TestConnectionBu
       toast.success('Connection test successful');
     } catch (error: any) {
       console.error('Connection test error:', error);
-      toast.error('Connection test failed: ' + error.message);
+      toast.error('Connection test failed: ' + (error?.message || 'Unknown error'));
     } finally {
       setTesting(false);
     }
