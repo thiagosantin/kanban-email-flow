@@ -8,8 +8,11 @@ interface SyncEmailsRequest {
 }
 
 serve(async (req) => {
+  console.log("Received sync-emails request");
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log("Handling CORS preflight request");
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -131,8 +134,9 @@ serve(async (req) => {
       .eq('type', 'inbox')
       .single();
 
-    if (folderError && folderError.code !== 'PGRST116') {
+    if (folderError) {
       console.error("Error fetching inbox folder:", folderError);
+      
       // Create the inbox folder if it doesn't exist
       const { data: newFolder, error: createFolderError } = await supabaseClient
         .from('email_folders')
@@ -147,13 +151,25 @@ serve(async (req) => {
         
       if (createFolderError) {
         console.error("Error creating inbox folder:", createFolderError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to create inbox folder: ' + createFolderError.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       } else {
         console.log("Created new inbox folder:", newFolder);
       }
     }
 
-    // For simulation purposes, let's use the inbox folder ID if available, otherwise use null
-    let folderId = inboxFolder?.id || null;
+    // Get the folder ID again if we just created it
+    const { data: updatedInboxFolder } = await supabaseClient
+      .from('email_folders')
+      .select('id')
+      .eq('account_id', account_id)
+      .eq('type', 'inbox')
+      .single();
+
+    // Use the inbox folder ID if available, otherwise use null
+    let folderId = updatedInboxFolder?.id || inboxFolder?.id || null;
 
     // Simulate fetching emails from the email provider
     // In a real implementation, this would connect to the email provider's API

@@ -1,7 +1,7 @@
 import { Database as GeneratedDatabase } from '@/integrations/supabase/types';
 
 // Extend the generated database types with our custom tables
-export interface Database extends GeneratedDatabase {
+export interface Database extends Omit<GeneratedDatabase, 'public'> {
   public: {
     Tables: {
       email_accounts: {
@@ -68,15 +68,7 @@ export interface Database extends GeneratedDatabase {
           created_at?: string;
           updated_at?: string | null;
         };
-        Relationships: [
-          {
-            foreignKeyName: "background_jobs_account_id_fkey";
-            columns: ["account_id"];
-            isOneToOne: false;
-            referencedRelation: "email_accounts";
-            referencedColumns: ["id"];
-          }
-        ];
+        Relationships: [];
       };
       email_folders: {
         Row: {
@@ -369,10 +361,7 @@ export interface Database extends GeneratedDatabase {
     Views: {};
     Functions: {
       assign_admin_and_link_users: {
-        Args: {
-          target_user_id: string;
-          users_to_link: string[];
-        };
+        Args: { target_user_id: string; users_to_link: string[] };
         Returns: {
           success: boolean;
           error?: string;

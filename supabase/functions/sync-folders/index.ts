@@ -8,8 +8,11 @@ interface SyncFoldersRequest {
 }
 
 serve(async (req) => {
+  console.log("Received sync-folders request");
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log("Handling CORS preflight request");
     return new Response(null, { headers: corsHeaders });
   }
 
