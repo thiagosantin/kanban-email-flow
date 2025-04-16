@@ -15,6 +15,7 @@ import Dashboard from "./pages/Dashboard";
 import About from "./pages/About";
 import Settings from "./pages/Settings";
 import SuperAdmin from "./pages/SuperAdmin";
+import EmailFolderView from "./pages/EmailFolderView";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ const App = () => {
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={!session ? <Auth /> : <Navigate to="/dashboard" />} />
             <Route path="/dashboard" element={session ? <Dashboard /> : <Navigate to="/auth" />} />
+            <Route path="/emails/folder/:folderId" element={session ? <EmailFolderView /> : <Navigate to="/auth" />} />
             <Route path="/about" element={<About />} />
             <Route path="/settings" element={session ? <Settings /> : <Navigate to="/auth" />} />
             <Route path="/admin" element={session ? <SuperAdmin /> : <Navigate to="/auth" />} />
