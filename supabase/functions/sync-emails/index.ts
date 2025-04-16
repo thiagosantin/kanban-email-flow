@@ -52,8 +52,9 @@ serve(async (req) => {
     
     // For demo purposes, let's create 5 sample emails
     for (let i = 0; i < 5; i++) {
+      const timestamp = Date.now();
       emails.push({
-        external_id: `sample-email-${account_id}-${Date.now()}-${i}`,
+        external_id: `sample-email-${account_id}-${timestamp}-${i}`,
         subject: `Sample Email ${i + 1}`,
         from_email: "example@example.com",
         from_name: "Example Sender",
@@ -65,20 +66,38 @@ serve(async (req) => {
       });
     }
 
-    // Insert the emails into the database, ignoring duplicates
+    // Insert the emails into the database, with simple insert
     if (emails.length > 0) {
-      const { error: insertError } = await supabase
-        .from("emails")
-        .upsert(emails, { 
-          onConflict: "external_id",
-          ignoreDuplicates: true 
-        });
-
-      if (insertError) {
-        throw new Error(`Failed to insert emails: ${insertError.message}`);
+      // First check if the external_id exists for each email
+      for (const email of emails) {
+        const { data: existingEmail } = await supabase
+          .from("emails")
+          .select("id")
+          .eq("external_id", email.external_id)
+          .maybeSingle();
+        
+        // If email exists, update it, otherwise insert
+        if (existingEmail) {
+          const { error: updateError } = await supabase
+            .from("emails")
+            .update(email)
+            .eq("external_id", email.external_id);
+          
+          if (updateError) {
+            console.error(`Failed to update email: ${updateError.message}`);
+          }
+        } else {
+          const { error: insertError } = await supabase
+            .from("emails")
+            .insert(email);
+          
+          if (insertError) {
+            console.error(`Failed to insert email: ${insertError.message}`);
+          }
+        }
       }
 
-      console.log(`Inserted ${emails.length} emails`);
+      console.log(`Processed ${emails.length} emails`);
       return new Response(
         JSON.stringify({ 
           success: true, 
