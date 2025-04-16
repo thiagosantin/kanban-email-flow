@@ -3,12 +3,24 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { EmailAccount } from '@/types/email';
+import { cacheService } from '@/utils/cacheService';
 
 export function useEmailAccounts() {
+  const cacheKey = 'email_accounts';
+  
   const { data: accounts = [], isLoading, error, refetch } = useQuery({
     queryKey: ['email_accounts'],
     queryFn: async () => {
       try {
+        // Try to get accounts from cache first
+        const cachedData = cacheService.get<EmailAccount[]>(cacheKey);
+        if (cachedData) {
+          console.log('Using cached email accounts data');
+          return cachedData;
+        }
+
+        console.log('Cache miss for email accounts, fetching from API');
+        
         // Check if user is authenticated first
         const { data: authData, error: authError } = await supabase.auth.getUser();
         
@@ -62,6 +74,9 @@ export function useEmailAccounts() {
           })
         );
 
+        // Store data in cache (valid for 5 minutes)
+        cacheService.set(cacheKey, accountsWithFolders, 5 * 60 * 1000);
+        
         return accountsWithFolders as EmailAccount[];
       } catch (err: any) {
         console.error('Unexpected error in useEmailAccounts:', err);

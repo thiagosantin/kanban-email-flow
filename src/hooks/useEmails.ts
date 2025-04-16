@@ -1,16 +1,25 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Email, EmailStatus } from '@/types/email';
+import { cacheService } from '@/utils/cacheService';
 
 export function useEmails(folderId?: string) {
   const queryClient = useQueryClient();
+  const cacheKey = `emails_${folderId || 'all'}`;
 
   const { data: emails = [], isLoading } = useQuery({
     queryKey: ['emails', folderId],
     queryFn: async () => {
       try {
+        // Try to get emails from cache first
+        const cachedData = cacheService.get<Email[]>(cacheKey);
+        if (cachedData) {
+          console.log(`Using cached emails for ${cacheKey}`);
+          return cachedData;
+        }
+
+        console.log(`Cache miss for ${cacheKey}, fetching from API`);
         let query = supabase
           .from('emails')
           .select('*')
@@ -48,6 +57,12 @@ export function useEmails(folderId?: string) {
         }
 
         console.log(`Fetched ${data?.length || 0} emails${folderId ? ' for folder ' + folderId : ''}`);
+        
+        // Store in cache (valid for 2 minutes)
+        if (data) {
+          cacheService.set(cacheKey, data, 2 * 60 * 1000);
+        }
+        
         return data as Email[];
       } catch (error: any) {
         console.error('Failed to fetch emails:', error);
@@ -78,6 +93,8 @@ export function useEmails(folderId?: string) {
       return data;
     },
     onSuccess: () => {
+      // Invalidate cache and queries
+      cacheService.delete(cacheKey);
       queryClient.invalidateQueries({ queryKey: ['emails'] });
       toast.success('Email moved successfully');
     },
@@ -134,6 +151,8 @@ export function useEmails(folderId?: string) {
       }
     },
     onSuccess: (data) => {
+      // Invalidate cache and queries
+      cacheService.delete(cacheKey);
       queryClient.invalidateQueries({ queryKey: ['emails'] });
       toast.success(`${data.length} emails arquivados com sucesso`);
     },
@@ -190,6 +209,8 @@ export function useEmails(folderId?: string) {
       }
     },
     onSuccess: (data) => {
+      // Invalidate cache and queries
+      cacheService.delete(cacheKey);
       queryClient.invalidateQueries({ queryKey: ['emails'] });
       toast.success(`${data.length} emails movidos para lixeira`);
     },

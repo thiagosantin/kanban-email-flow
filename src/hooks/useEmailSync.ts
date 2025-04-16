@@ -1,9 +1,9 @@
-
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { EmailAccount } from '@/types/email';
+import { cacheService } from '@/utils/cacheService';
 
 export function useEmailSync() {
   const [isSyncing, setIsSyncing] = useState<Record<string, boolean>>({});
@@ -41,6 +41,12 @@ export function useEmailSync() {
       }
     },
     onSuccess: (data, accountId) => {
+      const keysToDelete = cacheService.keys().filter(key => 
+        key.startsWith('emails_') || key === 'email_accounts'
+      );
+      
+      keysToDelete.forEach(key => cacheService.delete(key));
+      
       queryClient.invalidateQueries({ queryKey: ['emails'] });
       queryClient.invalidateQueries({ queryKey: ['email_folders'] });
       queryClient.invalidateQueries({ queryKey: ['email_accounts'] });
@@ -87,6 +93,8 @@ export function useEmailSync() {
       }
     },
     onSuccess: (data, accountId) => {
+      cacheService.delete('email_accounts');
+      
       queryClient.invalidateQueries({ queryKey: ['email_folders'] });
       queryClient.invalidateQueries({ queryKey: ['email_accounts'] });
       toast.success(`Synced ${data.count} folders successfully`);
@@ -106,27 +114,33 @@ export function useEmailSync() {
     setIsSyncing(prev => ({ ...prev, ["all"]: true }));
     
     try {
-      // First sync folders for all accounts
       for (const account of accounts) {
         try {
           await syncFoldersMutation.mutateAsync(account.id);
         } catch (error) {
           console.error(`Failed to sync folders for account ${account.email}:`, error);
-          // Continue with next account
         }
       }
       
-      // Then sync emails for all accounts
       for (const account of accounts) {
         try {
           await syncEmailsMutation.mutateAsync(account.id);
         } catch (error) {
           console.error(`Failed to sync emails for account ${account.email}:`, error);
-          // Continue with next account
         }
       }
       
-      toast.success('Sync completed for all accounts');
+      try {
+        const keysToDelete = cacheService.keys().filter(key => 
+          key.startsWith('emails_') || key === 'email_accounts'
+        );
+        
+        keysToDelete.forEach(key => cacheService.delete(key));
+        
+        toast.success('Sync completed for all accounts');
+      } catch (error: any) {
+        toast.error(`Error syncing accounts: ${error.message}`);
+      }
     } catch (error: any) {
       toast.error(`Error syncing accounts: ${error.message}`);
     } finally {
