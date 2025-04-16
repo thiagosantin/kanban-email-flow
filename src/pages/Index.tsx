@@ -49,11 +49,80 @@ const Index = () => {
         <div className="mt-16 relative">
           <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent z-10 pointer-events-none" />
           <div className="relative z-0 rounded-2xl overflow-hidden shadow-2xl border border-white/10 backdrop-blur-sm">
-            <img 
-              src="https://via.placeholder.com/1200x600?text=Email+Kanban+Preview" 
-              alt="Preview do Kanban de Emails" 
-              className="w-full object-cover transition-transform hover:scale-105 duration-700"
-            />
+            <div className="flex gap-4 p-6 bg-white">
+              {/* Coluna Caixa de Entrada */}
+              <div className="flex-1 min-w-[250px]">
+                <div className="bg-kanban-blue text-white p-3 rounded-t-lg">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-medium">Caixa de Entrada</h3>
+                    <span className="bg-white/20 px-2 py-0.5 rounded text-sm">3</span>
+                  </div>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-b-lg space-y-3">
+                  {/* Email Cards */}
+                  <div className="bg-white p-3 rounded border shadow-sm">
+                    <div className="flex gap-3">
+                      <div className="w-8 h-8 rounded-full bg-kanban-blue/20 flex items-center justify-center text-kanban-blue">JD</div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">João Silva</p>
+                        <p className="text-xs text-gray-600 truncate">Relatório mensal de vendas</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white p-3 rounded border shadow-sm">
+                    <div className="flex gap-3">
+                      <div className="w-8 h-8 rounded-full bg-kanban-purple/20 flex items-center justify-center text-kanban-purple">MA</div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Maria Alves</p>
+                        <p className="text-xs text-gray-600 truncate">Reunião de equipe</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Coluna Em Processamento */}
+              <div className="flex-1 min-w-[250px]">
+                <div className="bg-kanban-purple text-white p-3 rounded-t-lg">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-medium">Em Processamento</h3>
+                    <span className="bg-white/20 px-2 py-0.5 rounded text-sm">2</span>
+                  </div>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-b-lg space-y-3">
+                  <div className="bg-white p-3 rounded border shadow-sm">
+                    <div className="flex gap-3">
+                      <div className="w-8 h-8 rounded-full bg-kanban-yellow/20 flex items-center justify-center text-kanban-yellow">CP</div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Carlos Pereira</p>
+                        <p className="text-xs text-gray-600 truncate">Proposta comercial</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Coluna Concluído */}
+              <div className="flex-1 min-w-[250px]">
+                <div className="bg-kanban-green text-white p-3 rounded-t-lg">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-medium">Concluído</h3>
+                    <span className="bg-white/20 px-2 py-0.5 rounded text-sm">1</span>
+                  </div>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-b-lg space-y-3">
+                  <div className="bg-white p-3 rounded border shadow-sm opacity-75">
+                    <div className="flex gap-3">
+                      <div className="w-8 h-8 rounded-full bg-kanban-green/20 flex items-center justify-center text-kanban-green">AF</div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Ana Ferreira</p>
+                        <p className="text-xs text-gray-600 truncate">Feedback do projeto</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
