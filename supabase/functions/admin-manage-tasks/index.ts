@@ -1,161 +1,113 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.36.0";
 
-interface TaskActionRequest {
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+interface TaskAction {
+  action: "start" | "pause" | "retry" | "delete";
   taskId: string;
-  action: "start" | "pause" | "delete" | "retry";
-  userId: string;
 }
 
 serve(async (req) => {
-  // CORS headers
+  // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      },
-    });
-  }
-
-  // Only allow POST requests
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Get the JWT from the authorization header
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "No authorization header" }),
-        {
-          status: 401,
-          headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
-          },
-        }
-      );
-    }
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceRole);
 
-    // Create Supabase client with service role
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const { action, taskId }: TaskAction = await req.json();
 
-    // Get the user ID from the JWT
-    const { data: { user }, error: userError } = await supabase.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
+    // Log the action being performed
+    console.log(`Processing task action: ${action} for task: ${taskId}`);
 
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Invalid token", details: userError }),
-        {
-          status: 401,
-          headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
-          },
-        }
-      );
-    }
-
-    // Check if user is admin (this is a simplified check)
-    // In a real app, you'd check an admin role in a users_roles table
-    // For demo purposes, we're allowing any authenticated user
-    const isAdmin = true; // Simplified for demo
-
-    if (!isAdmin) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized, admin access required" }),
-        {
-          status: 403,
-          headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
-          },
-        }
-      );
-    }
-
-    // Parse request body
-    const { taskId, action } = await req.json() as TaskActionRequest;
-
-    if (!taskId || !action) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
-        {
-          status: 400,
-          headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
-          },
-        }
-      );
-    }
-
-    // In a real implementation, you would update a tasks table
-    // For this demo, we'll just return success
-    let result;
-    
+    let newStatus;
     switch (action) {
       case "start":
-        // Here you would update the task status to "running" in the database
-        result = { success: true, message: "Task started", taskId };
+        newStatus = "running";
         break;
       case "pause":
-        // Here you would update the task status to "paused" in the database
-        result = { success: true, message: "Task paused", taskId };
-        break;
-      case "delete":
-        // Here you would delete the task from the database
-        result = { success: true, message: "Task deleted", taskId };
+        newStatus = "pending";
         break;
       case "retry":
-        // Here you would reset the task status and error in the database
-        result = { success: true, message: "Task retried", taskId };
+        newStatus = "running";
         break;
-      default:
+      case "delete":
+        // Delete the task
+        const { error: deleteError } = await supabase
+          .from("background_jobs")
+          .delete()
+          .eq("id", taskId);
+
+        if (deleteError) throw deleteError;
+
         return new Response(
-          JSON.stringify({ error: "Invalid action" }),
-          {
-            status: 400,
-            headers: {
-              "Content-Type": "application/json",
-              "Access-Control-Allow-Origin": "*",
-            },
-          }
+          JSON.stringify({ success: true, message: "Task deleted successfully" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
+      default:
+        throw new Error("Invalid action");
     }
 
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
-  } catch (error) {
-    console.error("Error:", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error", details: error.message }),
+    // Update task status
+    const { data: result, error: updateError } = await supabase.rpc(
+      "update_job_status",
       {
-        status: 500,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
+        p_job_id: taskId,
+        p_status: newStatus,
+      }
+    );
+
+    if (updateError) throw updateError;
+
+    // If the action was "start" and it's an email sync task, trigger the sync
+    if (action === "start" || action === "retry") {
+      const { data: task } = await supabase
+        .from("background_jobs")
+        .select("type, account_id")
+        .eq("id", taskId)
+        .single();
+
+      if (task?.type === "email_sync" && task.account_id) {
+        // Trigger email sync
+        const syncResponse = await fetch(
+          `${supabaseUrl}/functions/v1/sync-emails`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${supabaseServiceRole}`
+            },
+            body: JSON.stringify({ account_id: task.account_id })
+          }
+        );
+        
+        if (!syncResponse.ok) {
+          throw new Error("Failed to trigger email sync");
+        }
+      }
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, data: result }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (error) {
+    console.error("Error in admin-manage-tasks function:", error);
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500 
       }
     );
   }

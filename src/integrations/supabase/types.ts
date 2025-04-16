@@ -9,6 +9,59 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      background_jobs: {
+        Row: {
+          account_id: string | null
+          completed_at: string | null
+          created_at: string
+          error: string | null
+          id: string
+          metadata: Json | null
+          next_run_at: string | null
+          schedule: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["job_status"]
+          type: Database["public"]["Enums"]["job_type"]
+          user_id: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          metadata?: Json | null
+          next_run_at?: string | null
+          schedule?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["job_status"]
+          type: Database["public"]["Enums"]["job_type"]
+          user_id?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          metadata?: Json | null
+          next_run_at?: string | null
+          schedule?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["job_status"]
+          type?: Database["public"]["Enums"]["job_type"]
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "background_jobs_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "email_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_accounts: {
         Row: {
           access_token: string | null
@@ -359,6 +412,10 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: boolean
       }
+      schedule_email_sync: {
+        Args: { p_account_id: string; p_schedule?: string }
+        Returns: string
+      }
       update_email_status: {
         Args: {
           email_id: string
@@ -382,6 +439,27 @@ export type Database = {
           updated_at: string | null
         }
       }
+      update_job_status: {
+        Args: {
+          p_job_id: string
+          p_status: Database["public"]["Enums"]["job_status"]
+          p_error?: string
+        }
+        Returns: {
+          account_id: string | null
+          completed_at: string | null
+          created_at: string
+          error: string | null
+          id: string
+          metadata: Json | null
+          next_run_at: string | null
+          schedule: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["job_status"]
+          type: Database["public"]["Enums"]["job_type"]
+          user_id: string | null
+        }
+      }
     }
     Enums: {
       app_role: "admin" | "user"
@@ -394,6 +472,12 @@ export type Database = {
         | "spam"
         | "archive"
         | "custom"
+      job_status: "pending" | "running" | "completed" | "failed" | "cancelled"
+      job_type:
+        | "email_sync"
+        | "report_generation"
+        | "cleanup"
+        | "background_task"
       log_level: "info" | "warning" | "error" | "debug"
     }
     CompositeTypes: {
@@ -520,6 +604,13 @@ export const Constants = {
         "spam",
         "archive",
         "custom",
+      ],
+      job_status: ["pending", "running", "completed", "failed", "cancelled"],
+      job_type: [
+        "email_sync",
+        "report_generation",
+        "cleanup",
+        "background_task",
       ],
       log_level: ["info", "warning", "error", "debug"],
     },

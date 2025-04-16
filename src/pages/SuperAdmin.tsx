@@ -118,56 +118,21 @@ const SuperAdmin = () => {
       const emailAccounts = accountsData as EmailAccount[] || [];
       setAccounts(emailAccounts);
       
-      const mockTasks: Task[] = [
-        {
-          id: "1",
-          name: "Email Sync - Gmail",
-          status: "running",
-          type: "sync",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          owner_id: "user1",
-          owner_email: "user@example.com",
-          last_run: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-          next_run: new Date(Date.now() + 1000 * 60 * 15).toISOString(),
-          frequency: "15min"
-        },
-        {
-          id: "2",
-          name: "Email Sync - Outlook",
-          status: "failed",
-          type: "sync",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          owner_id: "user2",
-          owner_email: "another@example.com",
-          last_run: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-          next_run: new Date(Date.now() + 1000 * 60 * 30).toISOString(),
-          frequency: "30min",
-          error: "Authentication failed: Invalid credentials"
-        },
-        {
-          id: "3",
-          name: "Daily Report Generator",
-          status: "paused",
-          type: "cron",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          owner_id: "user1",
-          owner_email: "user@example.com",
-          last_run: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-          next_run: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
-          frequency: "daily@8am"
-        }
-      ];
+      const { data: tasksData, error: tasksError } = await supabase
+        .from('background_jobs')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (tasksError) throw tasksError;
       
-      setTasks(mockTasks);
+      const tasks = tasksData || [];
+      setTasks(tasks);
       
       setStats({
         activeUsers: 2,
-        totalTasks: mockTasks.length,
-        activeTasks: mockTasks.filter(t => t.status === "running").length,
-        failedTasks: mockTasks.filter(t => t.status === "failed").length,
+        totalTasks: tasks.length,
+        activeTasks: tasks.filter(t => t.status === "running").length,
+        failedTasks: tasks.filter(t => t.status === "failed").length,
         emailAccounts: emailAccounts.length,
         avgSyncTime: 2.3
       });
@@ -219,44 +184,17 @@ const SuperAdmin = () => {
     setActionLoading(prev => ({ ...prev, [taskId]: true }));
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const { data, error } = await supabase.functions.invoke('admin-manage-tasks', {
+        body: { taskId, action }
+      });
+
+      if (error) throw error;
       
-      if (action === "start") {
-        setTasks(prev => prev.map(task => 
-          task.id === taskId ? { ...task, status: "running" } : task
-        ));
-        toast.success("Tarefa iniciada com sucesso");
-      } else if (action === "pause") {
-        setTasks(prev => prev.map(task => 
-          task.id === taskId ? { ...task, status: "paused" } : task
-        ));
-        toast.success("Tarefa pausada com sucesso");
-      } else if (action === "delete") {
-        setTasks(prev => prev.filter(task => task.id !== taskId));
-        toast.success("Tarefa removida com sucesso");
-      } else if (action === "retry") {
-        setTasks(prev => prev.map(task => 
-          task.id === taskId ? { ...task, status: "running", error: null } : task
-        ));
-        toast.success("Tarefa reiniciada com sucesso");
-      }
-      
-      const updatedTasks = tasks.map(task => 
-        task.id === taskId 
-          ? { ...task, status: action === "start" ? "running" : action === "pause" ? "paused" : task.status }
-          : task
-      ).filter(task => action !== "delete" || task.id !== taskId);
-      
-      setStats(prev => ({
-        ...prev,
-        totalTasks: action === "delete" ? prev.totalTasks - 1 : prev.totalTasks,
-        activeTasks: updatedTasks.filter(t => t.status === "running").length,
-        failedTasks: updatedTasks.filter(t => t.status === "failed").length,
-      }));
-      
+      await fetchData(); // Refresh data after action
+      toast.success(`Task ${action} successful`);
     } catch (error: any) {
       console.error(`Error performing ${action} on task:`, error.message);
-      toast.error(`Erro ao ${action === "start" ? "iniciar" : action === "pause" ? "pausar" : action === "delete" ? "remover" : "reiniciar"} tarefa`);
+      toast.error(`Error: ${error.message}`);
     } finally {
       setActionLoading(prev => ({ ...prev, [taskId]: false }));
     }
