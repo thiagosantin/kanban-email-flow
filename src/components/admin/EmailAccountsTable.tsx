@@ -14,9 +14,10 @@ import { Badge } from "@/components/ui/badge";
 interface EmailAccountsTableProps {
   accounts: EmailAccount[];
   isLoading: boolean;
+  error?: any;
 }
 
-export function EmailAccountsTable({ accounts, isLoading }: EmailAccountsTableProps) {
+export function EmailAccountsTable({ accounts, isLoading, error }: EmailAccountsTableProps) {
   const formatDateTime = (dateString: string | null) => {
     if (!dateString) return "N/A";
     return new Date(dateString).toLocaleString('pt-BR', { 
@@ -32,6 +33,14 @@ export function EmailAccountsTable({ accounts, isLoading }: EmailAccountsTablePr
     return (
       <div className="py-8 flex justify-center items-center">
         <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8 text-red-500">
+        Erro ao carregar contas de email. Por favor, tente novamente.
       </div>
     );
   }

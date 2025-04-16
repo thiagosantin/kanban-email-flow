@@ -5,25 +5,36 @@ import { toast } from 'sonner';
 import { EmailAccount } from '@/types/email';
 
 export function useEmailAccounts() {
-  const { data: accounts = [], isLoading, error } = useQuery({
+  const { data: accounts = [], isLoading, error, refetch } = useQuery({
     queryKey: ['email_accounts'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('email_accounts')
-        .select('*, folders(*)');
+      try {
+        const { data, error } = await supabase
+          .from('email_accounts')
+          .select('*, folders(*)');
 
-      if (error) {
+        if (error) {
+          console.error('Error fetching email accounts:', error);
+          toast.error('Failed to load email accounts');
+          throw error;
+        }
+
+        if (!data) {
+          return [];
+        }
+
+        // Convert the Supabase result to the correct type
+        return (data as any[]).map(account => ({
+          ...account,
+          folders: Array.isArray(account.folders) ? account.folders : []
+        })) as EmailAccount[];
+      } catch (err) {
+        console.error('Unexpected error in useEmailAccounts:', err);
         toast.error('Failed to load email accounts');
-        throw error;
+        throw err;
       }
-
-      // Convert the Supabase result to the correct type
-      return (data as any[]).map(account => ({
-        ...account,
-        folders: Array.isArray(account.folders) ? account.folders : []
-      })) as EmailAccount[];
     }
   });
 
-  return { accounts, isLoading, error };
+  return { accounts, isLoading, error, refetch };
 }
