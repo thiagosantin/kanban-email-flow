@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { cacheService } from '@/utils/cacheService';
-import { Database, RefreshCw } from 'lucide-react';
+import { Database, RefreshCw, Trash } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function CacheDebugger() {
   const [cacheSize, setCacheSize] = useState(0);
@@ -24,10 +25,19 @@ export function CacheDebugger() {
   const clearAllCache = () => {
     cacheService.clear();
     updateStats();
+    toast.success("Cache limpo com sucesso");
   };
   
   const clearExpiredCache = () => {
     cacheService.clearExpired();
+    updateStats();
+    toast.success("Cache expirado limpo");
+  };
+
+  const clearEmailCache = () => {
+    const emailKeys = keys.filter(key => key.startsWith('emails_') || key === 'email_accounts');
+    emailKeys.forEach(key => cacheService.delete(key));
+    toast.success(`${emailKeys.length} chaves de email removidas do cache`);
     updateStats();
   };
   
@@ -36,21 +46,22 @@ export function CacheDebugger() {
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Database className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-medium">Cache Status</h3>
+          <h3 className="text-sm font-medium">Status do Cache</h3>
         </div>
         <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-          {cacheSize} items
+          {cacheSize} itens
         </span>
       </div>
       
-      <div className="flex space-x-2 mt-2">
+      <div className="flex flex-wrap gap-2 mt-2">
         <Button 
           variant="outline" 
           size="sm" 
           className="text-xs"
           onClick={clearAllCache}
         >
-          Clear All
+          <Trash className="h-3 w-3 mr-1" />
+          Limpar Tudo
         </Button>
         <Button 
           variant="outline" 
@@ -59,14 +70,23 @@ export function CacheDebugger() {
           onClick={clearExpiredCache}
         >
           <RefreshCw className="h-3 w-3 mr-1" />
-          Clear Expired
+          Limpar Expirados
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="text-xs"
+          onClick={clearEmailCache}
+        >
+          <Trash className="h-3 w-3 mr-1" />
+          Limpar Cache de Email
         </Button>
       </div>
       
       {keys.length > 0 && (
         <div className="mt-3">
-          <p className="text-xs text-muted-foreground mb-1">Cached items:</p>
-          <div className="max-h-24 overflow-y-auto">
+          <p className="text-xs text-muted-foreground mb-1">Itens em cache:</p>
+          <div className="max-h-36 overflow-y-auto">
             {keys.map(key => (
               <div key={key} className="text-xs py-0.5 border-b border-border/20 last:border-0">
                 {key}

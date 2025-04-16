@@ -12,7 +12,7 @@ export function useEmailAccounts() {
     queryKey: ['email_accounts'],
     queryFn: async () => {
       try {
-        // Try to get accounts from cache first
+        // Check cache first with shorter TTL to ensure fresh data
         const cachedData = cacheService.get<EmailAccount[]>(cacheKey);
         if (cachedData) {
           console.log('Using cached email accounts data');
@@ -74,8 +74,8 @@ export function useEmailAccounts() {
           })
         );
 
-        // Store data in cache (valid for 5 minutes)
-        cacheService.set(cacheKey, accountsWithFolders, 5 * 60 * 1000);
+        // Store data in cache (valid for 2 minutes - shorter to ensure fresher data)
+        cacheService.set(cacheKey, accountsWithFolders, 2 * 60 * 1000);
         
         return accountsWithFolders as EmailAccount[];
       } catch (err: any) {
@@ -85,7 +85,9 @@ export function useEmailAccounts() {
       }
     },
     retry: 2, // Retry failed requests up to 2 times
-    refetchOnWindowFocus: false // Don't refetch when window regains focus
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 2 * 60 * 1000 // Consider data stale after 2 minutes
   });
 
   return { accounts, isLoading, error, refetch };

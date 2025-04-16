@@ -1,6 +1,8 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.36.0";
+import { ImapFlow } from "https://esm.sh/imapflow@1.0.156";
+import { simpleParser } from "https://esm.sh/mailparser@3.6.9";
 
 // CORS headers for browser requests
 const corsHeaders = {
@@ -24,11 +26,10 @@ serve(async (req) => {
     const { account_id } = await req.json();
 
     if (!account_id) {
-      console.error('Production Test: No account ID provided');
       throw new Error("Account ID is required");
     }
 
-    // Get the email account details with more detailed logging
+    // Get the email account details
     const { data: account, error: accountError } = await supabase
       .from("email_accounts")
       .select("*")
@@ -36,14 +37,10 @@ serve(async (req) => {
       .single();
 
     if (accountError || !account) {
-      console.error('Production Test: Account not found', { 
-        account_id, 
-        error: accountError 
-      });
       throw new Error(`Email account not found: ${accountError?.message}`);
     }
 
-    console.log(`Production Test: Syncing emails for account: ${account.email}`);
+    console.log(`Syncing emails for account: ${account.email}`);
 
     // Update the account's last_synced timestamp
     await supabase
@@ -51,7 +48,7 @@ serve(async (req) => {
       .update({ last_synced: new Date().toISOString() })
       .eq("id", account_id);
 
-    // First, check if there are any folders for the account
+    // Get folders for the account
     const { data: folders, error: foldersError } = await supabase
       .from("email_folders")
       .select("id, name, path")
@@ -61,7 +58,7 @@ serve(async (req) => {
       console.error('Error fetching folders:', foldersError);
     }
 
-    // If no folders exist, create a default "Inbox" folder
+    // Create default inbox folder if none exists
     let inboxFolderId;
     if (!folders || folders.length === 0) {
       const { data: newFolder, error: createFolderError } = await supabase
@@ -79,7 +76,6 @@ serve(async (req) => {
         console.error('Error creating default folder:', createFolderError);
       } else {
         inboxFolderId = newFolder.id;
-        console.log('Created default Inbox folder:', newFolder.id);
       }
     } else {
       // Find the inbox folder or use the first available folder
@@ -87,12 +83,11 @@ serve(async (req) => {
       inboxFolderId = inboxFolder ? inboxFolder.id : folders[0].id;
     }
 
-    // Check if the emails table has archived and deleted columns
+    // Check for archived and deleted columns
     let hasArchivedColumn = false;
     let hasDeletedColumn = false;
     
     try {
-      // Try to select an email with archived and deleted columns
       const { data: testEmail, error } = await supabase
         .from("emails")
         .select("archived, deleted")
@@ -106,46 +101,128 @@ serve(async (req) => {
       console.log("Table doesn't have archived/deleted columns yet");
     }
 
-    // Create sample emails
-    const emails = [];
-    const baseTimestamp = Date.now();
-    const statuses = ["inbox", "awaiting", "processing", "done"];
+    // Connect to IMAP server and fetch real emails
+    let fetchedEmails = [];
+    let successCount = 0;
     
-    for (let i = 0; i < 10; i++) {
-      const timestamp = new Date(baseTimestamp - i * 3600000);
-      // Randomly assign a status, with inbox being more common
-      const randomStatusIndex = Math.floor(Math.random() * (i < 7 ? 1 : 4)); // 70% chance of "inbox" for first 7 emails
-      
-      // Build the base email object
-      const email: any = {
-        external_id: `sync-${account_id}-${timestamp.getTime()}`,
-        subject: `Demo Email ${i + 1}: ${timestamp.toLocaleDateString()}`,
-        from_email: "demo@example.com",
-        from_name: "Email Demo",
-        date: timestamp.toISOString(),
-        preview: `This is a demo email #${i + 1} created during sync on ${timestamp.toLocaleString()}`,
-        content: `<p>This is the content of demo email #${i + 1}</p><p>Created during sync process.</p><p>Date: ${timestamp.toLocaleString()}</p>`,
-        account_id: account_id,
-        folder_id: inboxFolderId, 
-        status: statuses[randomStatusIndex]
-      };
-      
-      // Add archived and deleted properties if the columns exist
-      if (hasArchivedColumn) {
-        email.archived = false;
+    if (account.auth_type === 'imap' && account.host && account.port && account.username && account.password) {
+      try {
+        const client = new ImapFlow({
+          host: account.host,
+          port: account.port,
+          secure: account.port === 993, // Use TLS for port 993
+          auth: {
+            user: account.username,
+            pass: account.password
+          },
+          logger: false
+        });
+
+        await client.connect();
+        console.log('Connected to IMAP server');
+
+        // Select inbox or the first folder
+        const mailboxPath = folders?.length > 0 ? 
+          folders.find(f => f.name.toLowerCase() === "inbox")?.path || folders[0].path : 
+          'INBOX';
+        
+        const mailbox = await client.mailboxOpen(mailboxPath);
+        console.log(`Opened mailbox: ${mailboxPath} with ${mailbox.exists} messages`);
+
+        // Fetch the latest 20 messages
+        const fetchLimit = 20;
+        if (mailbox.exists > 0) {
+          // Fetch from the most recent messages
+          const startSeq = Math.max(1, mailbox.exists - fetchLimit + 1);
+          const endSeq = mailbox.exists;
+          
+          console.log(`Fetching messages from sequence ${startSeq} to ${endSeq}`);
+          
+          for await (const message of client.fetch(`${startSeq}:${endSeq}`, { source: true })) {
+            const parsedEmail = await simpleParser(message.source);
+            
+            const externalId = `${account_id}-${parsedEmail.messageId || message.uid}`;
+            const from = parsedEmail.from?.value[0];
+            
+            const email = {
+              external_id: externalId,
+              subject: parsedEmail.subject || "(No Subject)",
+              from_email: from?.address || "unknown@example.com",
+              from_name: from?.name || null,
+              date: parsedEmail.date || new Date(),
+              preview: parsedEmail.text?.substring(0, 250) || "",
+              content: parsedEmail.html || parsedEmail.text || "",
+              account_id: account_id,
+              folder_id: inboxFolderId,
+              status: "inbox"
+            };
+            
+            // Add archived and deleted properties if the columns exist
+            if (hasArchivedColumn) {
+              email.archived = false;
+            }
+            
+            if (hasDeletedColumn) {
+              email.deleted = false;
+            }
+            
+            fetchedEmails.push(email);
+          }
+        }
+        
+        await client.logout();
+        console.log('Disconnected from IMAP server');
+      } catch (error) {
+        console.error('IMAP connection error:', error);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: `IMAP connection error: ${error.message}` 
+          }),
+          { 
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 500 
+          }
+        );
       }
+    } else {
+      console.log('Account not configured for IMAP or missing credentials, using demo data');
+      // If IMAP not available, create demo emails as a fallback
+      const baseTimestamp = Date.now();
+      const statuses = ["inbox", "awaiting", "processing", "done"];
       
-      if (hasDeletedColumn) {
-        email.deleted = false;
+      for (let i = 0; i < 10; i++) {
+        const timestamp = new Date(baseTimestamp - i * 3600000);
+        const randomStatusIndex = Math.floor(Math.random() * (i < 7 ? 1 : 4));
+        
+        const email = {
+          external_id: `demo-${account_id}-${timestamp.getTime()}`,
+          subject: `Demo Email ${i + 1}: ${timestamp.toLocaleDateString()}`,
+          from_email: "demo@example.com",
+          from_name: "Email Demo",
+          date: timestamp.toISOString(),
+          preview: `This is a demo email #${i + 1} created during sync on ${timestamp.toLocaleString()}`,
+          content: `<p>This is the content of demo email #${i + 1}</p><p>Created during sync process.</p><p>Date: ${timestamp.toLocaleString()}</p>`,
+          account_id: account_id,
+          folder_id: inboxFolderId, 
+          status: statuses[randomStatusIndex]
+        };
+        
+        if (hasArchivedColumn) {
+          email.archived = false;
+        }
+        
+        if (hasDeletedColumn) {
+          email.deleted = false;
+        }
+        
+        fetchedEmails.push(email);
       }
-      
-      emails.push(email);
     }
 
-    // Insert emails with detailed error handling
-    if (emails.length > 0) {
-      let successCount = 0;
-      for (const email of emails) {
+    // Insert emails with duplicate checking
+    if (fetchedEmails.length > 0) {
+      for (const email of fetchedEmails) {
         try {
           const { data: existingEmail } = await supabase
             .from("emails")

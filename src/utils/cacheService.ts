@@ -10,7 +10,7 @@ type CacheItem<T> = {
 
 class CacheService {
   private cache: Map<string, CacheItem<any>> = new Map();
-  private readonly DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
+  private readonly DEFAULT_TTL = 2 * 60 * 1000; // 2 minutes in milliseconds (reduced from 5)
 
   /**
    * Get an item from the cache
@@ -36,7 +36,7 @@ class CacheService {
    * Set an item in the cache
    * @param key Cache key
    * @param value Value to store
-   * @param ttl Time to live in milliseconds (default: 5 minutes, null = never expires)
+   * @param ttl Time to live in milliseconds (default: 2 minutes, null = never expires)
    */
   set<T>(key: string, value: T, ttl: number | null = this.DEFAULT_TTL): void {
     const expiry = ttl === null ? null : Date.now() + ttl;

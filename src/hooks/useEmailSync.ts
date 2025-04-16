@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,15 +22,16 @@ export function useEmailSync() {
         }
         
         console.log('Syncing emails for account:', accountId);
-        const { data, error } = await supabase.functions.invoke('sync-emails', {
+        const response = await supabase.functions.invoke('sync-emails', {
           body: { account_id: accountId }
         });
         
-        if (error) {
-          console.error('Error from Edge Function:', error);
-          throw new Error(`Failed to sync emails: ${error.message}`);
+        if (response.error) {
+          console.error('Error from Edge Function:', response.error);
+          throw new Error(`Failed to sync emails: ${response.error}`);
         }
         
+        const data = response.data;
         if (!data || data.error) {
           console.error('Edge Function returned error:', data?.error);
           throw new Error(`Failed to sync emails: ${data?.error || 'Unknown error'}`);
@@ -41,20 +43,28 @@ export function useEmailSync() {
       }
     },
     onSuccess: (data, accountId) => {
+      // Clear relevant cache keys
       const keysToDelete = cacheService.keys().filter(key => 
         key.startsWith('emails_') || key === 'email_accounts'
       );
       
       keysToDelete.forEach(key => cacheService.delete(key));
       
+      // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['emails'] });
       queryClient.invalidateQueries({ queryKey: ['email_folders'] });
       queryClient.invalidateQueries({ queryKey: ['email_accounts'] });
-      toast.success(`Synced ${data.count} emails successfully`);
+      
+      // Show success message
+      if (data.count > 0) {
+        toast.success(`Sincronizados ${data.count} emails com sucesso`);
+      } else {
+        toast.info('Nenhum novo email encontrado para sincronizar');
+      }
     },
     onError: (error: Error) => {
       console.error('Failed to sync emails:', error);
-      toast.error(`Failed to sync emails: ${error.message}`);
+      toast.error(`Falha ao sincronizar emails: ${error.message}`);
     }
   });
 
@@ -70,15 +80,16 @@ export function useEmailSync() {
         }
         
         console.log('Syncing folders for account:', accountId);
-        const { data, error } = await supabase.functions.invoke('sync-folders', {
+        const response = await supabase.functions.invoke('sync-folders', {
           body: { account_id: accountId }
         });
         
-        if (error) {
-          console.error('Error from Edge Function:', error);
-          throw new Error(`Failed to sync folders: ${error.message}`);
+        if (response.error) {
+          console.error('Error from Edge Function:', response.error);
+          throw new Error(`Failed to sync folders: ${response.error}`);
         }
         
+        const data = response.data;
         if (!data || data.error) {
           console.error('Edge Function returned error:', data?.error);
           throw new Error(`Failed to sync folders: ${data?.error || 'Unknown error'}`);
@@ -93,27 +104,36 @@ export function useEmailSync() {
       }
     },
     onSuccess: (data, accountId) => {
+      // Clear cache and invalidate queries
       cacheService.delete('email_accounts');
-      
       queryClient.invalidateQueries({ queryKey: ['email_folders'] });
       queryClient.invalidateQueries({ queryKey: ['email_accounts'] });
-      toast.success(`Synced ${data.count} folders successfully`);
+      
+      // Show success message
+      if (data.count > 0) {
+        toast.success(`Sincronizadas ${data.count} pastas com sucesso`);
+      } else {
+        toast.info('Nenhuma nova pasta encontrada para sincronizar');
+      }
     },
     onError: (error: Error) => {
       console.error('Folder sync error:', error);
-      toast.error(`Failed to sync folders: ${error.message}`);
+      toast.error(`Falha ao sincronizar pastas: ${error.message}`);
     }
   });
 
   const syncAllAccounts = async (accounts: EmailAccount[]) => {
     if (!accounts || accounts.length === 0) {
-      toast.error('No email accounts configured');
+      toast.error('Nenhuma conta de email configurada');
       return;
     }
 
     setIsSyncing(prev => ({ ...prev, ["all"]: true }));
     
     try {
+      toast.info(`Iniciando sincronização de ${accounts.length} contas de email...`);
+      
+      // First sync folders for all accounts
       for (const account of accounts) {
         try {
           await syncFoldersMutation.mutateAsync(account.id);
@@ -122,6 +142,7 @@ export function useEmailSync() {
         }
       }
       
+      // Then sync emails for all accounts
       for (const account of accounts) {
         try {
           await syncEmailsMutation.mutateAsync(account.id);
@@ -130,6 +151,7 @@ export function useEmailSync() {
         }
       }
       
+      // Clear cache after all syncs are done
       try {
         const keysToDelete = cacheService.keys().filter(key => 
           key.startsWith('emails_') || key === 'email_accounts'
@@ -137,12 +159,12 @@ export function useEmailSync() {
         
         keysToDelete.forEach(key => cacheService.delete(key));
         
-        toast.success('Sync completed for all accounts');
+        toast.success('Sincronização completa para todas as contas');
       } catch (error: any) {
-        toast.error(`Error syncing accounts: ${error.message}`);
+        toast.error(`Erro ao sincronizar contas: ${error.message}`);
       }
     } catch (error: any) {
-      toast.error(`Error syncing accounts: ${error.message}`);
+      toast.error(`Erro ao sincronizar contas: ${error.message}`);
     } finally {
       setIsSyncing(prev => ({ ...prev, ["all"]: false }));
     }
