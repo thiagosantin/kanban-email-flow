@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -10,7 +11,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import { TaskSidebar } from "@/components/TaskSidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import type { Email } from "@/types/email";
+import type { Email } from "@/types/email";  // Use 'type' import to avoid circular dependencies
 import { cacheService } from "@/utils/cacheService";
 import { CacheDebugger } from "@/components/CacheDebugger";
 
