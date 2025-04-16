@@ -1,16 +1,15 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Paperclip, Star, Flag, Mail, Calendar, User, Clock } from "lucide-react";
+import { Star } from "lucide-react";
 import { type Email } from "@/types/email";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
+import { EmailSender } from "./email-viewer/EmailSender";
+import { EmailStatus } from "./email-viewer/EmailStatus";
+import { EmailCustomFields } from "./email-viewer/EmailCustomFields";
+import { EmailHeaders } from "./email-viewer/EmailHeaders";
+import { EmailAttachments } from "./email-viewer/EmailAttachments";
+import { EmailContent } from "./email-viewer/EmailContent";
 
 interface EmailViewerProps {
   email: Email;
@@ -18,31 +17,7 @@ interface EmailViewerProps {
   onClose: () => void;
 }
 
-interface CustomFields {
-  notes: string;
-  monetaryValue: string;
-}
-
 export function EmailViewer({ email, isOpen, onClose }: EmailViewerProps) {
-  const [customFields, setCustomFields] = useState<CustomFields>({
-    notes: '',
-    monetaryValue: ''
-  });
-
-  const form = useForm<CustomFields>({
-    defaultValues: {
-      notes: '',
-      monetaryValue: ''
-    }
-  });
-
-  const initials = email.from_email
-    .split('@')[0]
-    .split('.')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase();
-
   // Format the date for display
   const formattedDate = new Date(email.date).toLocaleString('pt-BR', {
     day: '2-digit',
@@ -52,55 +27,11 @@ export function EmailViewer({ email, isOpen, onClose }: EmailViewerProps) {
     minute: '2-digit'
   });
 
-  // Dummy headers (in a real app, these would come from the email)
-  const emailHeaders = {
-    "From": `${email.from_name || ''} <${email.from_email}>`,
-    "Date": formattedDate,
-    "Subject": email.subject,
-    "To": "me@example.com",
-    "Message-ID": `<${Math.random().toString(36).substring(2)}@example.com>`,
-  };
-
   // Dummy attachments (in a real app, these would come from the email)
   const attachments = [
     { name: "documento.pdf", size: "2.4 MB", type: "application/pdf" },
     { name: "imagem.jpg", size: "1.1 MB", type: "image/jpeg" }
   ];
-
-  const handleFieldChange = (field: keyof CustomFields, value: string) => {
-    setCustomFields(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  // Format monetary value as BRL currency
-  const formatCurrency = (value: string) => {
-    // Remove non-numeric characters
-    const numericValue = value.replace(/\D/g, '');
-    
-    // Convert to number and format as BRL
-    if (numericValue) {
-      const amount = parseInt(numericValue, 10) / 100;
-      return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL'
-      }).format(amount);
-    }
-    return '';
-  };
-
-  const handleMonetaryInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    // Remove currency formatting for storage
-    const numericValue = value.replace(/\D/g, '');
-    handleFieldChange('monetaryValue', numericValue);
-  };
-
-  // Display formatted value
-  const displayMonetaryValue = customFields.monetaryValue 
-    ? formatCurrency(customFields.monetaryValue) 
-    : 'R$ 0,00';
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -121,125 +52,24 @@ export function EmailViewer({ email, isOpen, onClose }: EmailViewerProps) {
 
         <div className="space-y-4 overflow-y-auto flex-1">
           {/* Sender info */}
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={`https://avatars.dicebear.com/api/initials/${email.from_email}.svg`} alt={email.from_email} />
-              <AvatarFallback className="bg-kanban-blue/20 text-kanban-blue">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <div className="font-medium">{email.from_name || email.from_email}</div>
-              <div className="text-sm text-muted-foreground">{email.from_email}</div>
-            </div>
-            <div className="ml-auto text-sm text-muted-foreground">
-              {formattedDate}
-            </div>
-          </div>
+          <EmailSender email={email} formattedDate={formattedDate} />
 
           {/* Email status */}
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">{email.status}</Badge>
-            {!email.read && <Badge className="bg-kanban-blue text-white text-xs">Não lido</Badge>}
-          </div>
+          <EmailStatus email={email} />
 
           {/* Custom fields section */}
-          <div className="rounded-md border p-4 bg-background/50">
-            <h3 className="font-medium mb-3">Campos Personalizados</h3>
-            <Form {...form}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Anotações</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Adicione anotações sobre este email..." 
-                          value={customFields.notes}
-                          onChange={(e) => handleFieldChange('notes', e.target.value)}
-                          className="resize-none"
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="monetaryValue"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Valor em R$</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="R$ 0,00" 
-                          value={displayMonetaryValue}
-                          onChange={handleMonetaryInputChange}
-                          className="font-medium"
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </Form>
-          </div>
+          <EmailCustomFields />
 
           <Separator />
 
           {/* Headers accordion */}
-          <div className="rounded-md border">
-            <div className="flex p-3 text-sm font-medium items-center cursor-pointer justify-between" onClick={() => document.getElementById('headers')?.classList.toggle('hidden')}>
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                <span>Cabeçalhos do Email</span>
-              </div>
-              <Button variant="ghost" size="sm">Exibir detalhes</Button>
-            </div>
-            <div id="headers" className="hidden border-t p-3 text-sm">
-              <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
-                {Object.entries(emailHeaders).map(([key, value]) => (
-                  <>
-                    <div className="font-medium">{key}:</div>
-                    <div className="text-muted-foreground break-all">{value}</div>
-                  </>
-                ))}
-              </div>
-            </div>
-          </div>
+          <EmailHeaders email={email} formattedDate={formattedDate} />
 
           {/* Attachments section */}
-          {attachments.length > 0 && (
-            <div className="rounded-md border p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Paperclip className="h-4 w-4" />
-                <span className="font-medium">Anexos ({attachments.length})</span>
-              </div>
-              <div className="grid gap-2">
-                {attachments.map((attachment, index) => (
-                  <div key={index} className="flex items-center justify-between bg-muted/40 rounded p-2">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded flex items-center justify-center bg-muted text-xs font-medium">
-                        {attachment.type.startsWith('image') ? 'IMG' : 'DOC'}
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium">{attachment.name}</div>
-                        <div className="text-xs text-muted-foreground">{attachment.size}</div>
-                      </div>
-                    </div>
-                    <Button variant="outline" size="sm">Download</Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <EmailAttachments attachments={attachments} />
 
           {/* Email content */}
-          <div className="prose prose-sm max-w-none">
-            <div dangerouslySetInnerHTML={{ __html: email.content || email.preview || "No content available" }} />
-          </div>
+          <EmailContent email={email} />
         </div>
       </DialogContent>
     </Dialog>
