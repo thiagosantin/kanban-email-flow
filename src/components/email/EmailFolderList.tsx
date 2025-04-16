@@ -18,9 +18,14 @@ export function EmailFolderList({ folders, isLoading, onFolderClick }: EmailFold
   if (isLoading) {
     return (
       <div className="py-2">
-        <div className="flex items-center space-x-2">
-          <div className="h-4 w-4 animate-pulse bg-slate-200 rounded-full"></div>
-          <div className="h-4 w-32 animate-pulse bg-slate-200 rounded"></div>
+        <div className="animate-pulse space-y-2">
+          <div className="h-8 w-full bg-muted rounded"></div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="h-7 bg-muted rounded"></div>
+            <div className="h-7 bg-muted rounded"></div>
+            <div className="h-7 bg-muted rounded"></div>
+            <div className="h-7 bg-muted rounded"></div>
+          </div>
         </div>
       </div>
     );
@@ -28,8 +33,13 @@ export function EmailFolderList({ folders, isLoading, onFolderClick }: EmailFold
 
   if (!folders || folders.length === 0) {
     return (
-      <div className="text-sm text-muted-foreground py-2 px-1">
-        No folders found
+      <div className="flex flex-col items-center justify-center p-4 text-center">
+        <div className="bg-muted/40 rounded-full p-3 mb-2">
+          <Folder className="h-5 w-5 text-muted-foreground/70" />
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Nenhuma pasta encontrada
+        </p>
       </div>
     );
   }
@@ -62,36 +72,36 @@ export function EmailFolderList({ folders, isLoading, onFolderClick }: EmailFold
       <Button
         variant="ghost"
         size="sm"
-        className="w-full justify-start mb-1 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-primary/5 transition-colors"
+        className="w-full justify-start mb-2 text-sm font-medium text-primary hover:text-primary hover:bg-primary/5 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         {isExpanded ? (
-          <ChevronDown className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+          <ChevronDown className="h-3.5 w-3.5 mr-1.5 text-primary" />
         ) : (
-          <ChevronRight className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+          <ChevronRight className="h-3.5 w-3.5 mr-1.5 text-primary" />
         )}
         <Folder className="h-3.5 w-3.5 mr-1.5 text-primary" />
-        <span>Folders</span>
-        <span className="ml-1.5 text-xs bg-muted px-1.5 py-0.5 rounded-full">
+        <span>Pastas</span>
+        <span className="ml-1.5 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
           {folders.length}
         </span>
       </Button>
       
       {isExpanded && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-1 mt-1 pl-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-1 mt-1 px-1">
           {folders.map((folder) => (
             <Button
               key={folder.id}
               variant="ghost"
               size="sm"
-              className="justify-start w-full h-auto py-1.5 px-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-primary/5 rounded-md transition-colors"
+              className="justify-start w-full h-auto py-1.5 px-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-primary/5 rounded-md transition-colors group"
               onClick={() => handleFolderClick(folder.id)}
             >
-              <div className="flex items-center overflow-hidden">
-                <span className="mr-1.5 flex-shrink-0">
+              <div className="flex items-center overflow-hidden w-full">
+                <span className="mr-1.5 flex-shrink-0 group-hover:scale-110 transition-transform">
                   {getFolderIcon(folder.type)}
                 </span>
-                <span className="truncate">
+                <span className="truncate flex-1">
                   {folder.name}
                 </span>
                 {folder.unread_count > 0 && (

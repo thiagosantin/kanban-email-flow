@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { KanbanHeader } from "@/components/KanbanHeader";
 import { KanbanBoard } from "@/components/KanbanBoard";
@@ -14,29 +14,50 @@ import { KanbanHeaderActions } from "@/components/KanbanHeaderActions";
 import { toast } from "sonner";
 import type { EmailStatus } from "@/types/email";
 import { useEmailAccounts } from "@/hooks/useEmailAccounts";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { 
+  ResizablePanelGroup, 
+  ResizablePanel, 
+  ResizableHandle 
+} from "@/components/ui/resizable";
 
 // Tipo para configuração de colunas kanban
 type ColumnConfig = {
   id: string;
   title: string;
   color: "blue" | "yellow" | "purple" | "green" | "red" | "orange" | "pink";
+  defaultSize?: number;
 };
+
+const COLUMNS_STORAGE_KEY = "kanban-email-flow-columns";
 
 const Dashboard = () => {
   const { emails, isLoading, updateEmailStatus, archiveEmails, trashEmails } = useEmails();
   const { accounts, isLoading: accountsLoading } = useEmailAccounts();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
   // Configuração inicial das colunas
   const defaultColumns: ColumnConfig[] = [
-    { id: "inbox", title: "Caixa de Entrada", color: "blue" },
-    { id: "awaiting", title: "Aguardando", color: "yellow" },
-    { id: "processing", title: "Em Processamento", color: "purple" },
-    { id: "done", title: "Concluído", color: "green" }
+    { id: "inbox", title: "Caixa de Entrada", color: "blue", defaultSize: 25 },
+    { id: "awaiting", title: "Aguardando", color: "yellow", defaultSize: 25 },
+    { id: "processing", title: "Em Processamento", color: "purple", defaultSize: 25 },
+    { id: "done", title: "Concluído", color: "green", defaultSize: 25 }
   ];
   
-  const [columns, setColumns] = useState<ColumnConfig[]>(defaultColumns);
+  // Load columns from localStorage or use defaults
+  const [columns, setColumns] = useState<ColumnConfig[]>(() => {
+    const savedColumns = localStorage.getItem(COLUMNS_STORAGE_KEY);
+    return savedColumns ? JSON.parse(savedColumns) : defaultColumns;
+  });
+  
   const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
+  const [taskSidebarWidth, setTaskSidebarWidth] = useState(25);
+
+  // Save columns to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem(COLUMNS_STORAGE_KEY, JSON.stringify(columns));
+  }, [columns]);
 
   const handleDragEnd = (result: any) => {
     const { destination, source, draggableId } = result;
@@ -98,14 +119,6 @@ const Dashboard = () => {
     }
   };
 
-  // Log email count for debugging
-  console.log('Email counts:', {
-    inbox: emails.inbox.length,
-    awaiting: emails.awaiting.length,
-    processing: emails.processing.length, 
-    done: emails.done.length
-  });
-
   return (
     <SidebarProvider>
       <div className="min-h-screen flex flex-col md:flex-row bg-kanban-gray-100">
@@ -131,20 +144,59 @@ const Dashboard = () => {
           </KanbanHeader>
           
           <div className="p-4 md:p-6 flex-1 overflow-auto">
-            <div className="flex h-full">
-              <div className="flex-1 overflow-x-auto">
-                <KanbanBoard 
-                  emails={emails}
-                  isLoading={isLoading || accountsLoading}
-                  onDragEnd={handleDragEnd}
-                  columns={columns}
-                  onUpdateColumns={handleUpdateColumns}
-                  selectedEmails={selectedEmails}
-                  onSelectEmail={handleSelectEmail}
-                />
+            {isMobile ? (
+              // Mobile view
+              <div className="flex h-full flex-col">
+                <div className="flex-1 overflow-x-auto mb-4">
+                  <KanbanBoard 
+                    emails={emails}
+                    isLoading={isLoading || accountsLoading}
+                    onDragEnd={handleDragEnd}
+                    columns={columns}
+                    onUpdateColumns={handleUpdateColumns}
+                    selectedEmails={selectedEmails}
+                    onSelectEmail={handleSelectEmail}
+                  />
+                </div>
+                <TaskSidebar />
               </div>
-              <TaskSidebar />
-            </div>
+            ) : (
+              // Desktop view with resizable panels
+              <ResizablePanelGroup 
+                direction="horizontal" 
+                className="min-h-[calc(100vh-130px)]"
+              >
+                <ResizablePanel 
+                  defaultSize={75} 
+                  minSize={50}
+                  className="overflow-hidden"
+                >
+                  <div className="h-full overflow-auto pr-2">
+                    <KanbanBoard 
+                      emails={emails}
+                      isLoading={isLoading || accountsLoading}
+                      onDragEnd={handleDragEnd}
+                      columns={columns}
+                      onUpdateColumns={handleUpdateColumns}
+                      selectedEmails={selectedEmails}
+                      onSelectEmail={handleSelectEmail}
+                    />
+                  </div>
+                </ResizablePanel>
+                
+                <ResizableHandle withHandle />
+                
+                <ResizablePanel 
+                  defaultSize={25} 
+                  minSize={15}
+                  onResize={size => setTaskSidebarWidth(size)}
+                >
+                  <div className="h-full">
+                    <TaskSidebar />
+                  </div>
+                </ResizablePanel>
+              </ResizablePanelGroup>
+            )}
           </div>
         </div>
       </div>

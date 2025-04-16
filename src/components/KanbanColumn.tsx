@@ -34,11 +34,11 @@ export function KanbanColumn({
   };
 
   return (
-    <div className="flex-1 flex flex-col min-w-[250px] max-w-[350px] bg-white rounded-lg shadow">
+    <div className="h-full flex flex-col bg-white/90 rounded-lg shadow-sm border border-border/30 backdrop-blur-sm transition-all duration-200">
       <div className={`p-3 rounded-t-lg ${colorMap[color]}`}>
         <div className="flex justify-between items-center">
-          <h3 className="font-medium">{title}</h3>
-          <Badge variant="secondary" className="bg-white/20 hover:bg-white/30">
+          <h3 className="font-medium truncate">{title}</h3>
+          <Badge variant="secondary" className="bg-white/20 hover:bg-white/30 ml-2 flex-shrink-0">
             {count}
           </Badge>
         </div>

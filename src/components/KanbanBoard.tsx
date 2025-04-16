@@ -5,6 +5,11 @@ import { KanbanColumn } from "@/components/KanbanColumn";
 import { Loader2 } from "lucide-react";
 import type { Email, EmailStatus } from "@/types/email";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { 
+  ResizablePanelGroup, 
+  ResizablePanel, 
+  ResizableHandle 
+} from "@/components/ui/resizable";
 
 // Mapeamento entre EmailStatus e cores
 const statusColorMap = {
@@ -18,6 +23,7 @@ type ColumnConfig = {
   id: string;
   title: string;
   color: "blue" | "yellow" | "purple" | "green" | "red" | "orange" | "pink";
+  defaultSize?: number; // New field for default size
 };
 
 interface KanbanBoardProps {
@@ -46,16 +52,32 @@ export function KanbanBoard({
 }: KanbanBoardProps) {
   // Colunas padrão baseadas nas status de email
   const defaultColumns: ColumnConfig[] = [
-    { id: "inbox", title: "Caixa de Entrada", color: statusColorMap.inbox },
-    { id: "awaiting", title: "Aguardando", color: statusColorMap.awaiting },
-    { id: "processing", title: "Em Processamento", color: statusColorMap.processing },
-    { id: "done", title: "Concluído", color: statusColorMap.done }
+    { id: "inbox", title: "Caixa de Entrada", color: statusColorMap.inbox, defaultSize: 25 },
+    { id: "awaiting", title: "Aguardando", color: statusColorMap.awaiting, defaultSize: 25 },
+    { id: "processing", title: "Em Processamento", color: statusColorMap.processing, defaultSize: 25 },
+    { id: "done", title: "Concluído", color: statusColorMap.done, defaultSize: 25 }
   ];
 
   // Use colunas externas se fornecidas, caso contrário use as padrão
-  const [columns] = useState<ColumnConfig[]>(externalColumns || defaultColumns);
+  const [columns] = useState<ColumnConfig[]>(
+    externalColumns?.map(col => ({
+      ...col, 
+      defaultSize: col.defaultSize || 100 / (externalColumns.length || 1)
+    })) || 
+    defaultColumns
+  );
   
   const isMobile = useIsMobile();
+
+  // Save panel sizes when resizing
+  const handlePanelResize = (panelId: string, size: number) => {
+    if (onUpdateColumns && columns) {
+      const updatedColumns = columns.map(col => 
+        col.id === panelId ? { ...col, defaultSize: size } : col
+      );
+      onUpdateColumns(updatedColumns);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -68,23 +90,63 @@ export function KanbanBoard({
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
-      <div className={`flex ${isMobile ? 'flex-col space-y-4' : 'space-x-4'} h-full ${!isMobile && 'min-w-[900px]'}`}>
-        {columns.map(column => {
-          const columnEmails = emails[column.id as EmailStatus] || [];
-          return (
-            <KanbanColumn 
-              key={column.id}
-              id={column.id}
-              title={column.title}
-              emails={columnEmails}
-              count={columnEmails.length}
-              color={column.color}
-              selectedEmails={selectedEmails}
-              onSelectEmail={onSelectEmail}
-            />
-          );
-        })}
-      </div>
+      {isMobile ? (
+        // Mobile view - stacked columns
+        <div className="flex flex-col space-y-4">
+          {columns.map(column => {
+            const columnEmails = emails[column.id as EmailStatus] || [];
+            return (
+              <div key={column.id} className="w-full">
+                <KanbanColumn 
+                  id={column.id}
+                  title={column.title}
+                  emails={columnEmails}
+                  count={columnEmails.length}
+                  color={column.color}
+                  selectedEmails={selectedEmails}
+                  onSelectEmail={onSelectEmail}
+                />
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        // Desktop view - resizable panels
+        <ResizablePanelGroup 
+          direction="horizontal" 
+          className="min-h-[400px] w-full rounded-lg border"
+        >
+          {columns.map((column, index) => {
+            const columnEmails = emails[column.id as EmailStatus] || [];
+            return (
+              <React.Fragment key={column.id}>
+                <ResizablePanel 
+                  id={column.id}
+                  defaultSize={column.defaultSize || 25}
+                  minSize={15}
+                  className="transition-all duration-200 ease-in-out"
+                  onResize={(size) => handlePanelResize(column.id, size)}
+                >
+                  <div className="h-full">
+                    <KanbanColumn 
+                      id={column.id}
+                      title={column.title}
+                      emails={columnEmails}
+                      count={columnEmails.length}
+                      color={column.color}
+                      selectedEmails={selectedEmails}
+                      onSelectEmail={onSelectEmail}
+                    />
+                  </div>
+                </ResizablePanel>
+                {index < columns.length - 1 && (
+                  <ResizableHandle withHandle className="bg-border/50 hover:bg-border transition-colors" />
+                )}
+              </React.Fragment>
+            );
+          })}
+        </ResizablePanelGroup>
+      )}
     </DragDropContext>
   );
 }
