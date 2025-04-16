@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { KanbanHeader } from "@/components/KanbanHeader";
@@ -20,6 +19,8 @@ import {
   ResizablePanel, 
   ResizableHandle 
 } from "@/components/ui/resizable";
+import { cacheService } from "@/utils/cacheService";
+import { CacheDebugger } from "@/components/CacheDebugger";
 
 // Tipo para configuração de colunas kanban
 type ColumnConfig = {
@@ -32,7 +33,7 @@ type ColumnConfig = {
 const COLUMNS_STORAGE_KEY = "kanban-email-flow-columns";
 
 const Dashboard = () => {
-  const { emails, isLoading, updateEmailStatus, archiveEmails, trashEmails } = useEmails();
+  const { emails, allEmails, isLoading, updateEmailStatus, archiveEmails, trashEmails } = useEmails();
   const { accounts, isLoading: accountsLoading } = useEmailAccounts();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -109,6 +110,10 @@ const Dashboard = () => {
     
     trashEmails(selectedEmails);
     setSelectedEmails([]);
+    
+    // Clear cache for faster update
+    cacheService.delete('emails_all');
+    toast.success(`${selectedEmails.length} emails movidos para lixeira`);
   };
 
   const handleSelectEmail = (emailId: string, selected: boolean) => {
@@ -117,6 +122,19 @@ const Dashboard = () => {
     } else {
       setSelectedEmails(prev => prev.filter(id => id !== emailId));
     }
+  };
+  
+  const handleMarkAll = () => {
+    // If all emails are already selected, deselect all
+    if (selectedEmails.length === allEmails.length) {
+      setSelectedEmails([]);
+      return;
+    }
+    
+    // Otherwise, select all visible emails
+    const allEmailIds = allEmails.map(email => email.id);
+    setSelectedEmails(allEmailIds);
+    toast.success(`${allEmailIds.length} emails selecionados`);
   };
 
   return (
@@ -139,6 +157,9 @@ const Dashboard = () => {
               <KanbanHeaderActions 
                 onArchive={handleArchiveSelected}
                 onTrash={handleTrashSelected}
+                onMarkAll={handleMarkAll}
+                hasSelection={selectedEmails.length > 0}
+                selectedCount={selectedEmails.length}
               />
             </div>
           </KanbanHeader>
@@ -158,7 +179,10 @@ const Dashboard = () => {
                     onSelectEmail={handleSelectEmail}
                   />
                 </div>
-                <TaskSidebar />
+                <div className="grid grid-cols-1 gap-4">
+                  <CacheDebugger />
+                  <TaskSidebar />
+                </div>
               </div>
             ) : (
               // Desktop view with resizable panels
@@ -191,8 +215,11 @@ const Dashboard = () => {
                   minSize={15}
                   onResize={size => setTaskSidebarWidth(size)}
                 >
-                  <div className="h-full">
-                    <TaskSidebar />
+                  <div className="h-full overflow-auto">
+                    <div className="space-y-4">
+                      <CacheDebugger />
+                      <TaskSidebar />
+                    </div>
                   </div>
                 </ResizablePanel>
               </ResizablePanelGroup>

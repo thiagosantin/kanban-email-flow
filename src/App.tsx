@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -16,6 +15,7 @@ import About from "./pages/About";
 import Settings from "./pages/Settings";
 import SuperAdmin from "./pages/SuperAdmin";
 import EmailFolderView from "./pages/EmailFolderView";
+import TrashView from "./pages/TrashView";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +52,7 @@ const App = () => {
             <Route path="/about" element={<About />} />
             <Route path="/settings" element={session ? <Settings /> : <Navigate to="/auth" />} />
             <Route path="/admin" element={session ? <SuperAdmin /> : <Navigate to="/auth" />} />
+            <Route path="/trash" element={<TrashView />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

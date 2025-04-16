@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -31,9 +32,12 @@ export function useEmails(folderId?: string) {
           console.log('Fetching emails for folder:', folderId);
         }
 
-        // Try to filter by archived and deleted fields if they exist
+        // Always filter out deleted emails
+        query = query.is('deleted', null);
+        
+        // Try to filter by archived if it exists
         try {
-          // First check if the columns exist by getting the first email
+          // Check if the columns exist by getting the first email
           const { data: testEmail, error: testError } = await supabase
             .from('emails')
             .select('*')
@@ -41,11 +45,11 @@ export function useEmails(folderId?: string) {
           
           // If we have a test email and it has the archived property
           if (testEmail && testEmail.length > 0 && 'archived' in testEmail[0]) {
-            // The columns exist, apply the filters
-            query = query.is('archived', null).is('deleted', null);
+            // Apply the archived filter
+            query = query.is('archived', null);
           }
         } catch (e) {
-          console.log('Archived/deleted columns may not exist, skipping filters');
+          console.log('Archived column may not exist, skipping filter');
         }
 
         const { data, error } = await query;
@@ -167,50 +171,32 @@ export function useEmails(folderId?: string) {
       console.log(`Moving ${emailIds.length} emails to trash`);
       
       try {
-        // Check if the deleted column exists
-        const { data: testEmail, error: testError } = await supabase
+        // Always set deleted to true for trash
+        const { data, error } = await supabase
           .from('emails')
-          .select('*')
-          .limit(1);
-        
-        if (testError) throw testError;
-        
-        if (testEmail && testEmail.length > 0 && 'deleted' in testEmail[0]) {
-          // Column exists, proceed with update
-          const { data, error } = await supabase
-            .from('emails')
-            .update({ 
-              deleted: true, 
-              updated_at: new Date().toISOString() 
-            })
-            .in('id', emailIds)
-            .select();
+          .update({ 
+            deleted: true, 
+            updated_at: new Date().toISOString() 
+          })
+          .in('id', emailIds)
+          .select();
 
-          if (error) throw error;
-          return data;
-        } else {
-          // Column doesn't exist, update status to 'done' as a fallback
-          const { data, error } = await supabase
-            .from('emails')
-            .update({ 
-              status: 'done',
-              updated_at: new Date().toISOString() 
-            })
-            .in('id', emailIds)
-            .select();
-
-          if (error) throw error;
-          toast.info('Trash functionality not fully available - emails marked as done');
-          return data;
-        }
+        if (error) throw error;
+        return data;
       } catch (error: any) {
         console.error('Error trashing emails:', error);
         throw error;
       }
     },
     onSuccess: (data) => {
-      // Invalidate cache and queries
+      // Invalidate cache and queries for immediate UI update
       cacheService.delete(cacheKey);
+      Object.keys(cacheService.keys()).forEach(key => {
+        if (key.startsWith('emails_')) {
+          cacheService.delete(key);
+        }
+      });
+      
       queryClient.invalidateQueries({ queryKey: ['emails'] });
       toast.success(`${data.length} emails movidos para lixeira`);
     },

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Folder, Mail, Inbox, Send, Archive, FileWarning, Trash, Star } from 'lucide-react';
 import { EmailFolder } from '@/types/email';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface EmailFolderListProps {
   folders: EmailFolder[] | null;
@@ -14,6 +14,7 @@ interface EmailFolderListProps {
 export function EmailFolderList({ folders, isLoading, onFolderClick }: EmailFolderListProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -66,6 +67,9 @@ export function EmailFolderList({ folders, isLoading, onFolderClick }: EmailFold
       navigate(`/emails/folder/${folderId}`);
     }
   };
+  
+  // Check if we're on the trash route
+  const isTrashActive = location.pathname === '/trash';
 
   return (
     <div>
@@ -112,6 +116,27 @@ export function EmailFolderList({ folders, isLoading, onFolderClick }: EmailFold
               </div>
             </Button>
           ))}
+          
+          {/* Lixeira button */}
+          <Button
+            variant={isTrashActive ? "secondary" : "ghost"}
+            size="sm"
+            className={`justify-start w-full h-auto py-1.5 px-2 text-xs font-medium ${
+              isTrashActive 
+                ? "bg-red-100/50 text-red-700" 
+                : "text-muted-foreground hover:text-foreground hover:bg-red-50"
+            } rounded-md transition-colors group`}
+            onClick={() => navigate('/trash')}
+          >
+            <div className="flex items-center overflow-hidden w-full">
+              <span className="mr-1.5 flex-shrink-0 group-hover:scale-110 transition-transform">
+                <Trash className="h-4 w-4 text-red-500" />
+              </span>
+              <span className="truncate flex-1">
+                Lixeira
+              </span>
+            </div>
+          </Button>
         </div>
       )}
     </div>

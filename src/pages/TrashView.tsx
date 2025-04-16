@@ -1,65 +1,55 @@
-import { useParams } from "react-router-dom";
+
+import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { useEmails } from "@/hooks/useEmails";
 import { EmailCard } from "@/components/EmailCard";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Folder, Check, Archive, Trash2 } from "lucide-react";
+import { ChevronLeft, Trash2, RefreshCw, Undo } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useEmailAccounts } from "@/hooks/useEmailAccounts";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { TaskSidebar } from "@/components/TaskSidebar";
-import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Email } from "@/types/email";
 import { cacheService } from "@/utils/cacheService";
 import { CacheDebugger } from "@/components/CacheDebugger";
 
-const EmailFolderView = () => {
-  const { folderId } = useParams<{ folderId: string }>();
+const TrashView = () => {
   const navigate = useNavigate();
-  const { allEmails, isLoading, archiveEmails, trashEmails } = useEmails(folderId);
-  const { accounts } = useEmailAccounts();
   const isMobile = useIsMobile();
+  const [isLoading, setIsLoading] = useState(true);
+  const [emails, setEmails] = useState<Email[]>([]);
   const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
+  const [isRestoring, setIsRestoring] = useState(false);
 
-  // Find the current folder name
-  const currentFolder = accounts
-    .flatMap(account => account.folders)
-    .find(folder => folder?.id === folderId);
+  const fetchTrashedEmails = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('emails')
+        .select('*')
+        .eq('deleted', true)
+        .order('date', { ascending: false });
 
-  const folderName = currentFolder?.name || "Folder";
-  
-  // Find the parent account
-  const parentAccount = accounts.find(account => 
-    account.folders?.some(folder => folder.id === folderId)
-  );
-  
-  const handleArchiveSelected = () => {
-    if (selectedEmails.length === 0) {
-      toast.info("Nenhum email selecionado para arquivar");
-      return;
-    }
-    
-    archiveEmails(selectedEmails);
-    setSelectedEmails([]);
-  };
+      if (error) {
+        console.error('Error fetching trashed emails:', error);
+        toast.error('Failed to load trashed emails');
+        throw error;
+      }
 
-  const handleTrashSelected = () => {
-    if (selectedEmails.length === 0) {
-      toast.info("Nenhum email selecionado para mover para lixeira");
-      return;
-    }
-    
-    trashEmails(selectedEmails);
-    setSelectedEmails([]);
-    
-    // Clear cache for this folder to ensure UI updates
-    if (folderId) {
-      cacheService.delete(`emails_${folderId}`);
+      setEmails(data || []);
+    } catch (error) {
+      console.error('Failed to fetch trashed emails:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
-  
+
+  useEffect(() => {
+    fetchTrashedEmails();
+  }, []);
+
   const handleSelectEmail = (emailId: string, selected: boolean) => {
     if (selected) {
       setSelectedEmails(prev => [...prev, emailId]);
@@ -69,16 +59,56 @@ const EmailFolderView = () => {
   };
   
   const handleMarkAll = () => {
-    // If all emails are already selected, deselect all
-    if (selectedEmails.length === allEmails.length) {
+    if (selectedEmails.length === emails.length) {
       setSelectedEmails([]);
       return;
     }
     
-    // Otherwise, select all visible emails
-    const allEmailIds = allEmails.map(email => email.id);
+    const allEmailIds = emails.map(email => email.id);
     setSelectedEmails(allEmailIds);
     toast.success(`${allEmailIds.length} emails selecionados`);
+  };
+  
+  const handleRestoreSelected = async () => {
+    if (selectedEmails.length === 0) {
+      toast.info("Nenhum email selecionado para restaurar");
+      return;
+    }
+    
+    setIsRestoring(true);
+    try {
+      const { data, error } = await supabase
+        .from('emails')
+        .update({ 
+          deleted: null, 
+          updated_at: new Date().toISOString() 
+        })
+        .in('id', selectedEmails)
+        .select();
+
+      if (error) {
+        console.error('Error restoring emails:', error);
+        toast.error('Falha ao restaurar emails');
+        throw error;
+      }
+      
+      // Clear cache for immediate UI update
+      Object.keys(cacheService.keys()).forEach(key => {
+        if (key.startsWith('emails_')) {
+          cacheService.delete(key);
+        }
+      });
+      
+      toast.success(`${data.length} emails restaurados com sucesso`);
+      setSelectedEmails([]);
+      
+      // Refresh the trash view
+      fetchTrashedEmails();
+    } catch (error) {
+      console.error('Failed to restore emails:', error);
+    } finally {
+      setIsRestoring(false);
+    }
   };
 
   return (
@@ -99,19 +129,17 @@ const EmailFolderView = () => {
               </Button>
               
               <div className="flex items-center">
-                <div className="bg-primary/10 p-2 rounded-full mr-3">
-                  <Folder className="h-4 w-4 text-primary" />
+                <div className="bg-red-100 p-2 rounded-full mr-3">
+                  <Trash2 className="h-4 w-4 text-red-500" />
                 </div>
                 <div className="flex flex-col">
-                  <h1 className="text-lg font-semibold leading-tight">{folderName}</h1>
-                  {parentAccount && (
-                    <span className="text-xs text-muted-foreground">{parentAccount.email}</span>
-                  )}
+                  <h1 className="text-lg font-semibold leading-tight">Lixeira</h1>
+                  <span className="text-xs text-muted-foreground">Emails excluídos</span>
                 </div>
               </div>
               
               <span className="text-sm ml-2 px-2 py-0.5 bg-muted rounded-full">
-                {allEmails.length}
+                {emails.length}
               </span>
             </div>
             
@@ -119,40 +147,38 @@ const EmailFolderView = () => {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={fetchTrashedEmails}
+                className="h-8"
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Atualizar
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handleMarkAll}
                 className="h-8"
               >
-                <Check className="h-4 w-4 mr-1" />
+                <Trash2 className="h-4 w-4 mr-1" />
                 Marcar Todos
               </Button>
               
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleArchiveSelected}
-                disabled={selectedEmails.length === 0}
-                className={`h-8 ${selectedEmails.length > 0 ? 'bg-amber-50 border-amber-200 hover:bg-amber-100' : ''}`}
+                onClick={handleRestoreSelected}
+                disabled={selectedEmails.length === 0 || isRestoring}
+                className={`h-8 ${selectedEmails.length > 0 ? 'bg-green-50 border-green-200 hover:bg-green-100' : ''}`}
               >
-                <Archive className="h-4 w-4 mr-1" />
-                Arquivar
-                {selectedEmails.length > 0 && (
-                  <span className="ml-1 text-xs bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded-full">
-                    {selectedEmails.length}
-                  </span>
+                {isRestoring ? (
+                  <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <Undo className="h-4 w-4 mr-1" />
                 )}
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleTrashSelected}
-                disabled={selectedEmails.length === 0}
-                className={`h-8 ${selectedEmails.length > 0 ? 'bg-red-50 border-red-200 hover:bg-red-100' : ''}`}
-              >
-                <Trash2 className="h-4 w-4 mr-1" />
-                Lixeira
+                Restaurar
                 {selectedEmails.length > 0 && (
-                  <span className="ml-1 text-xs bg-red-200 text-red-800 px-1.5 py-0.5 rounded-full">
+                  <span className="ml-1 text-xs bg-green-200 text-green-800 px-1.5 py-0.5 rounded-full">
                     {selectedEmails.length}
                   </span>
                 )}
@@ -208,20 +234,20 @@ const EmailFolderView = () => {
       );
     }
     
-    if (allEmails.length === 0) {
+    if (emails.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center py-10 px-4 h-full">
           <div className="bg-muted/50 p-4 rounded-full mb-3">
-            <Folder className="h-8 w-8 text-muted-foreground/70" />
+            <Trash2 className="h-8 w-8 text-muted-foreground/70" />
           </div>
-          <p className="text-muted-foreground text-center">Nenhum email encontrado nesta pasta</p>
+          <p className="text-muted-foreground text-center">Lixeira vazia</p>
         </div>
       );
     }
     
     return (
       <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {allEmails.map((email) => (
+        {emails.map((email) => (
           <EmailCard 
             key={email.id} 
             email={email} 
@@ -234,4 +260,4 @@ const EmailFolderView = () => {
   }
 };
 
-export default EmailFolderView;
+export default TrashView;
