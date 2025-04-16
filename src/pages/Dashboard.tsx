@@ -9,6 +9,7 @@ import { useEmails } from "@/hooks/useEmails";
 import { TaskSidebar } from "@/components/TaskSidebar";
 import { KanbanColumnEditor } from "@/components/KanbanColumnEditor";
 import { OAuthHelpDialog } from "@/components/OAuthHelpDialog";
+import { AdminUsersButton } from "@/components/admin/AdminUsersButton";
 import type { EmailStatus } from "@/types/email";
 
 // Tipo para configuração de colunas kanban
@@ -66,6 +67,7 @@ const Dashboard = () => {
                 initialColumns={columns} 
                 onUpdateColumns={handleUpdateColumns} 
               />
+              <AdminUsersButton />
               <OAuthHelpDialog />
             </div>
           </KanbanHeader>

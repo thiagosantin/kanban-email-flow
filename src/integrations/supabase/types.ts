@@ -287,6 +287,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_admin_relationships: {
+        Row: {
+          admin_id: string
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -313,6 +334,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_admin_and_link_users: {
+        Args: { target_user_id: string; users_to_link: string[] }
+        Returns: boolean
+      }
       assign_admin_role: {
         Args: { target_user_id: string }
         Returns: boolean
