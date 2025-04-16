@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -43,18 +44,19 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { EmailAccount } from "@/types/email";
+import { BackgroundJob, JobStatus, EmailAccount } from "@/types/email";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { SuperAdminSidebar } from "@/components/SuperAdminSidebar";
 import { OAuthHelpDialog } from "@/components/OAuthHelpDialog";
 import { OAuthConfigurationForm } from "@/components/admin/OAuthConfigurationForm";
 import { SystemLogsViewer } from "@/components/admin/SystemLogsViewer";
 
+// Interface for the UI representation of a task/job
 type Task = {
   id: string;
   name: string;
-  status: "running" | "paused" | "failed" | "completed";
-  type: "sync" | "cron" | "background";
+  status: JobStatus;
+  type: 'sync' | 'cron' | 'background';
   created_at: string;
   updated_at: string;
   owner_id: string;
@@ -118,21 +120,43 @@ const SuperAdmin = () => {
       const emailAccounts = accountsData as EmailAccount[] || [];
       setAccounts(emailAccounts);
       
-      const { data: tasksData, error: tasksError } = await supabase
+      const { data: jobsData, error: jobsError } = await supabase
         .from('background_jobs')
-        .select('*')
+        .select('*, email_accounts(email)')
         .order('created_at', { ascending: false });
 
-      if (tasksError) throw tasksError;
+      if (jobsError) throw jobsError;
       
-      const tasks = tasksData || [];
-      setTasks(tasks);
+      // Transform the background jobs into the task format expected by the UI
+      const transformedTasks: Task[] = (jobsData || []).map((job: any) => {
+        const jobType = job.type === 'email_sync' ? 'sync' : 
+                       (job.schedule ? 'cron' : 'background');
+        
+        return {
+          id: job.id,
+          name: job.type === 'email_sync' 
+            ? `Sync: ${job.email_accounts?.email || 'Unknown email'}`
+            : `Job: ${job.type}`,
+          status: job.status,
+          type: jobType,
+          created_at: job.created_at,
+          updated_at: job.completed_at || job.started_at || job.created_at,
+          owner_id: job.user_id || '',
+          owner_email: job.email_accounts?.email || 'System',
+          last_run: job.started_at,
+          next_run: job.next_run_at,
+          frequency: job.schedule || 'One-time',
+          error: job.error
+        };
+      });
+      
+      setTasks(transformedTasks);
       
       setStats({
         activeUsers: 2,
-        totalTasks: tasks.length,
-        activeTasks: tasks.filter(t => t.status === "running").length,
-        failedTasks: tasks.filter(t => t.status === "failed").length,
+        totalTasks: transformedTasks.length,
+        activeTasks: transformedTasks.filter(t => t.status === "running").length,
+        failedTasks: transformedTasks.filter(t => t.status === "failed").length,
         emailAccounts: emailAccounts.length,
         avgSyncTime: 2.3
       });

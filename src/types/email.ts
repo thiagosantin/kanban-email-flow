@@ -1,3 +1,4 @@
+
 export interface EmailAccount {
   id: string;
   provider: string;
@@ -48,4 +49,23 @@ export interface Email {
   external_id: string;
   from_email: string;
   folder_id?: string | null;
+}
+
+// New BackgroundJob type that matches database structure
+export type JobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+export type JobType = 'email_sync' | 'report_generation' | 'cleanup' | 'background_task';
+
+export interface BackgroundJob {
+  id: string;
+  type: JobType;
+  status: JobStatus;
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  error: string | null;
+  metadata: Record<string, any>;
+  account_id: string | null;
+  user_id: string | null;
+  next_run_at: string | null;
+  schedule: string | null;
 }
