@@ -23,7 +23,7 @@ export function KanbanHeaderActions({ onArchive, onTrash }: KanbanHeaderActionsP
               variant="outline" 
               size="sm" 
               onClick={onArchive}
-              className="text-kanban-gray-700 border-kanban-gray-300"
+              className="text-kanban-gray-700 border-kanban-gray-300 hover:bg-kanban-gray-100 transition-colors duration-200"
             >
               <Archive className="h-4 w-4 mr-1" />
               <span>Arquivo</span>
@@ -42,7 +42,7 @@ export function KanbanHeaderActions({ onArchive, onTrash }: KanbanHeaderActionsP
               variant="outline" 
               size="sm" 
               onClick={onTrash}
-              className="text-red-600 border-red-300 hover:bg-red-50"
+              className="text-red-600 border-red-300 hover:bg-red-50 transition-colors duration-200"
             >
               <Trash2 className="h-4 w-4 mr-1" />
               <span>Lixeira</span>
