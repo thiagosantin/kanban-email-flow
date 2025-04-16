@@ -51,27 +51,69 @@ serve(async (req) => {
       .update({ last_synced: new Date().toISOString() })
       .eq("id", account_id);
 
-    // Create sample emails with more unique identifiers
+    // First, check if there are any folders for the account
+    const { data: folders, error: foldersError } = await supabase
+      .from("email_folders")
+      .select("id, name, path")
+      .eq("account_id", account_id);
+
+    if (foldersError) {
+      console.error('Error fetching folders:', foldersError);
+    }
+
+    // If no folders exist, create a default "Inbox" folder
+    let inboxFolderId;
+    if (!folders || folders.length === 0) {
+      const { data: newFolder, error: createFolderError } = await supabase
+        .from("email_folders")
+        .insert({
+          account_id: account_id,
+          name: "Inbox",
+          path: "INBOX",
+          type: "inbox"
+        })
+        .select()
+        .single();
+
+      if (createFolderError) {
+        console.error('Error creating default folder:', createFolderError);
+      } else {
+        inboxFolderId = newFolder.id;
+        console.log('Created default Inbox folder:', newFolder.id);
+      }
+    } else {
+      // Find the inbox folder or use the first available folder
+      const inboxFolder = folders.find(f => f.name.toLowerCase() === "inbox" || f.path.toLowerCase() === "inbox");
+      inboxFolderId = inboxFolder ? inboxFolder.id : folders[0].id;
+    }
+
+    // Create sample emails
     const emails = [];
     const baseTimestamp = Date.now();
+    const statuses = ["inbox", "awaiting", "processing", "done"];
     
-    for (let i = 0; i < 5; i++) {
-      const timestamp = baseTimestamp + i;
+    for (let i = 0; i < 10; i++) {
+      const timestamp = new Date(baseTimestamp - i * 3600000);
+      // Randomly assign a status, with inbox being more common
+      const randomStatusIndex = Math.floor(Math.random() * (i < 7 ? 1 : 4)); // 70% chance of "inbox" for first 7 emails
+      
       emails.push({
-        external_id: `prod-sync-${account_id}-${timestamp}`,
-        subject: `Production Sync Test Email ${i + 1}`,
-        from_email: "test@example.com",
-        from_name: "Sync Tester",
-        date: new Date().toISOString(),
-        preview: `Production sync test email preview ${i + 1}`,
-        content: `<p>This is a production sync test email content ${i + 1}</p>`,
+        external_id: `sync-${account_id}-${timestamp.getTime()}`,
+        subject: `Demo Email ${i + 1}: ${timestamp.toLocaleDateString()}`,
+        from_email: "demo@example.com",
+        from_name: "Email Demo",
+        date: timestamp.toISOString(),
+        preview: `This is a demo email #${i + 1} created during sync on ${timestamp.toLocaleString()}`,
+        content: `<p>This is the content of demo email #${i + 1}</p><p>Created during sync process.</p><p>Date: ${timestamp.toLocaleString()}</p>`,
         account_id: account_id,
-        status: "inbox"
+        folder_id: inboxFolderId, 
+        status: statuses[randomStatusIndex]
       });
     }
 
-    // Detailed email processing with comprehensive logging
+    // Insert emails with detailed error handling
     if (emails.length > 0) {
+      let successCount = 0;
       for (const email of emails) {
         try {
           const { data: existingEmail } = await supabase
@@ -81,45 +123,49 @@ serve(async (req) => {
             .maybeSingle();
           
           if (existingEmail) {
-            console.log(`Production Test: Updating existing email: ${email.external_id}`);
-            const { error: updateError } = await supabase
-              .from("emails")
-              .update(email)
-              .eq("external_id", email.external_id);
-            
-            if (updateError) {
-              console.error(`Production Test: Failed to update email`, { 
-                external_id: email.external_id, 
-                error: updateError 
-              });
-            }
+            console.log(`Skipping existing email: ${email.external_id}`);
           } else {
-            console.log(`Production Test: Inserting new email: ${email.external_id}`);
             const { error: insertError } = await supabase
               .from("emails")
               .insert(email);
             
             if (insertError) {
-              console.error(`Production Test: Failed to insert email`, { 
+              console.error(`Failed to insert email`, { 
                 external_id: email.external_id, 
                 error: insertError 
               });
+            } else {
+              successCount++;
             }
           }
         } catch (processingError) {
-          console.error('Production Test: Email processing error', { 
+          console.error('Email processing error', { 
             external_id: email.external_id, 
             error: processingError 
           });
         }
       }
 
-      console.log(`Production Test: Processed ${emails.length} emails`);
+      console.log(`Successfully processed ${successCount} emails`);
+      
+      // Update the folder count
+      if (inboxFolderId) {
+        const { count } = await supabase
+          .from("emails")
+          .select("id", { count: "exact" })
+          .eq("folder_id", inboxFolderId);
+          
+        await supabase
+          .from("email_folders")
+          .update({ email_count: count || 0 })
+          .eq("id", inboxFolderId);
+      }
+
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: `Synced ${emails.length} emails in production test`, 
-          count: emails.length 
+          message: `Synced ${successCount} emails successfully`, 
+          count: successCount 
         }),
         { 
           headers: { ...corsHeaders, "Content-Type": "application/json" }, 
@@ -129,14 +175,14 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, message: "No emails to sync in production test", count: 0 }),
+      JSON.stringify({ success: true, message: "No emails to sync", count: 0 }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200 
       }
     );
   } catch (error) {
-    console.error("Production Test: Error in sync-emails function", error);
+    console.error("Error in sync-emails function", error);
     return new Response(
       JSON.stringify({ 
         success: false, 

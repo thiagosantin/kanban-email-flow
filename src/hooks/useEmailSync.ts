@@ -20,11 +20,21 @@ export function useEmailSync() {
           throw new Error('You must be logged in to sync emails');
         }
         
+        console.log('Syncing emails for account:', accountId);
         const { data, error } = await supabase.functions.invoke('sync-emails', {
           body: { account_id: accountId }
         });
         
-        if (error) throw error;
+        if (error) {
+          console.error('Error from Edge Function:', error);
+          throw new Error(`Failed to sync emails: ${error.message}`);
+        }
+        
+        if (!data || data.error) {
+          console.error('Edge Function returned error:', data?.error);
+          throw new Error(`Failed to sync emails: ${data?.error || 'Unknown error'}`);
+        }
+        
         return data;
       } finally {
         setIsSyncing(prev => ({ ...prev, [accountId]: false }));
@@ -32,7 +42,9 @@ export function useEmailSync() {
     },
     onSuccess: (data, accountId) => {
       queryClient.invalidateQueries({ queryKey: ['emails'] });
-      toast.success(`Synced ${data.count} emails`);
+      queryClient.invalidateQueries({ queryKey: ['email_folders'] });
+      queryClient.invalidateQueries({ queryKey: ['email_accounts'] });
+      toast.success(`Synced ${data.count} emails successfully`);
     },
     onError: (error: Error) => {
       console.error('Failed to sync emails:', error);
@@ -75,6 +87,7 @@ export function useEmailSync() {
       }
     },
     onSuccess: (data, accountId) => {
+      queryClient.invalidateQueries({ queryKey: ['email_folders'] });
       queryClient.invalidateQueries({ queryKey: ['email_accounts'] });
       toast.success(`Synced ${data.count} folders successfully`);
     },
