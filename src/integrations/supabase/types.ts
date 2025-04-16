@@ -9,13 +9,84 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      oauth_configurations: {
+        Row: {
+          client_id: string | null
+          client_secret: string | null
+          created_at: string
+          id: string
+          provider: string
+          redirect_uri: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          client_secret?: string | null
+          created_at?: string
+          id?: string
+          provider: string
+          redirect_uri?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          client_secret?: string | null
+          created_at?: string
+          id?: string
+          provider?: string
+          redirect_uri?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_admin_relationships: {
+        Row: {
+          admin_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      assign_admin_and_link_users: {
+        Args: { target_user_id: string; users_to_link: string[] }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

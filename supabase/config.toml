@@ -1,1 +1,14 @@
+
 project_id = "rxplnqouwsvwsoxgkwgq"
+
+[functions.sync-emails]
+verify_jwt = true
+
+[functions.sync-folders]
+verify_jwt = true
+
+[functions.admin-manage-tasks]
+verify_jwt = true
+
+[functions.scheduled-sync]
+verify_jwt = false
