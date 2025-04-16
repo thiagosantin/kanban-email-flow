@@ -48,6 +48,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { SuperAdminSidebar } from "@/components/SuperAdminSidebar";
 import { OAuthHelpDialog } from "@/components/OAuthHelpDialog";
 import { OAuthConfigurationForm } from "@/components/admin/OAuthConfigurationForm";
+import { SystemLogsViewer } from "@/components/admin/SystemLogsViewer";
 
 type Task = {
   id: string;
