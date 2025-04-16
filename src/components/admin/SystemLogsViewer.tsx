@@ -35,14 +35,16 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { Database } from "@/types/supabase";
 
 type LogLevel = 'info' | 'warning' | 'error' | 'debug';
 
+// Define a specific type for SystemLog instead of using table Row type directly
 interface SystemLog {
   id: string;
   level: LogLevel;
   message: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, any> | null;
   source: string | null;
   created_at: string;
   user_id: string | null;
@@ -69,7 +71,9 @@ export function SystemLogsViewer() {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as SystemLog[];
+      
+      // Cast the data to the specific SystemLog interface
+      return (data || []) as SystemLog[];
     },
   });
 

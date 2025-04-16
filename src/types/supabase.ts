@@ -281,6 +281,75 @@ export interface Database extends GeneratedDatabase {
         };
         Relationships: []; // Added this to match the generated interface
       };
+      system_logs: {
+        Row: {
+          id: string;
+          level: 'info' | 'warning' | 'error' | 'debug';
+          message: string;
+          metadata: Record<string, any> | null;
+          source: string | null;
+          created_at: string;
+          user_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          level: 'info' | 'warning' | 'error' | 'debug';
+          message: string;
+          metadata?: Record<string, any> | null;
+          source?: string | null;
+          created_at?: string;
+          user_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          level?: 'info' | 'warning' | 'error' | 'debug';
+          message?: string;
+          metadata?: Record<string, any> | null;
+          source?: string | null;
+          created_at?: string;
+          user_id?: string | null;
+        };
+        Relationships: [];
+      };
+      oauth_tokens: {
+        Row: {
+          id: string;
+          user_id: string;
+          provider: string;
+          access_token: string;
+          refresh_token: string | null;
+          token_type: string | null;
+          expires_at: string | null;
+          scope: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          provider: string;
+          access_token: string;
+          refresh_token?: string | null;
+          token_type?: string | null;
+          expires_at?: string | null;
+          scope?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          provider?: string;
+          access_token?: string;
+          refresh_token?: string | null;
+          token_type?: string | null;
+          expires_at?: string | null;
+          scope?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {};
     Functions: {
@@ -294,6 +363,17 @@ export interface Database extends GeneratedDatabase {
           error?: string;
         };
       };
+      schedule_email_sync: {
+        Args: {
+          p_account_id: string;
+          p_schedule?: string;
+        };
+        Returns: {
+          success: boolean;
+          job_id?: string;
+          error?: string;
+        };
+      };
     };
     Enums: {};
     CompositeTypes: {};
@@ -301,6 +381,6 @@ export interface Database extends GeneratedDatabase {
 }
 
 // Export the typed supabase client
-import { createClient } from '@supabase/supabase-js'; // Added import statement
+import { createClient } from '@supabase/supabase-js';
 
 export type ExtendedClient = ReturnType<typeof createClient<Database>>;

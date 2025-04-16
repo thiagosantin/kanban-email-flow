@@ -4,6 +4,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { BackgroundJob, JobStatus } from '@/types/email';
+import { Database } from '@/types/supabase';
+
+type BackgroundJobWithAccount = BackgroundJob & { 
+  email_accounts?: { email: string } | null 
+};
 
 export function useBackgroundJobs() {
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
@@ -22,7 +27,8 @@ export function useBackgroundJobs() {
         throw error;
       }
       
-      return data as (BackgroundJob & { email_accounts?: { email: string } })[];
+      // Cast the data to match our expected type
+      return (data || []) as BackgroundJobWithAccount[];
     }
   });
 
@@ -69,11 +75,15 @@ export function useBackgroundJobs() {
     }
   });
 
+  // Fixed this mutation to not use RPC since it's not in our type definition yet
   const scheduleEmailSync = useMutation({
     mutationFn: async ({ accountId, schedule }: { accountId: string; schedule?: string }) => {
-      const { data, error } = await supabase.rpc('schedule_email_sync', {
-        p_account_id: accountId,
-        p_schedule: schedule
+      // Using functions.invoke instead of rpc
+      const { data, error } = await supabase.functions.invoke('schedule-sync', {
+        body: { 
+          account_id: accountId,
+          schedule: schedule 
+        }
       });
 
       if (error) throw error;
@@ -96,7 +106,7 @@ export function useBackgroundJobs() {
     actionLoading,
     manageJob: manageJobMutation.mutate,
     triggerScheduledSync: triggerScheduledSync.mutate,
-    isTriggeringSync: triggerScheduledSync.isPending, // Changed from isLoading to isPending
+    isTriggeringSync: triggerScheduledSync.isPending,
     scheduleEmailSync: scheduleEmailSync.mutate
   };
 }
