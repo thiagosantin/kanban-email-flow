@@ -11,7 +11,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import { TaskSidebar } from "@/components/TaskSidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Email } from "@/types/email";
+import type { Email } from "@/types/email";
 import { cacheService } from "@/utils/cacheService";
 import { CacheDebugger } from "@/components/CacheDebugger";
 
