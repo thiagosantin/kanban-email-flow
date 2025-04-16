@@ -10,6 +10,7 @@ import { TaskSidebar } from "@/components/TaskSidebar";
 import { KanbanColumnEditor } from "@/components/KanbanColumnEditor";
 import { OAuthHelpDialog } from "@/components/OAuthHelpDialog";
 import { AdminUsersButton } from "@/components/admin/AdminUsersButton";
+import { KanbanHeaderActions } from "@/components/KanbanHeaderActions";
 import { toast } from "sonner";
 import type { EmailStatus } from "@/types/email";
 import { useEmailAccounts } from "@/hooks/useEmailAccounts";
@@ -22,7 +23,7 @@ type ColumnConfig = {
 };
 
 const Dashboard = () => {
-  const { emails, isLoading, updateEmailStatus } = useEmails();
+  const { emails, isLoading, updateEmailStatus, archiveEmails, trashEmails } = useEmails();
   const { accounts, isLoading: accountsLoading } = useEmailAccounts();
   const navigate = useNavigate();
   
@@ -35,6 +36,7 @@ const Dashboard = () => {
   ];
   
   const [columns, setColumns] = useState<ColumnConfig[]>(defaultColumns);
+  const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
 
   const handleDragEnd = (result: any) => {
     const { destination, source, draggableId } = result;
@@ -68,6 +70,34 @@ const Dashboard = () => {
     setColumns(newColumns);
   };
 
+  const handleArchiveSelected = () => {
+    if (selectedEmails.length === 0) {
+      toast.info("Nenhum email selecionado para arquivar");
+      return;
+    }
+    
+    archiveEmails(selectedEmails);
+    setSelectedEmails([]);
+  };
+
+  const handleTrashSelected = () => {
+    if (selectedEmails.length === 0) {
+      toast.info("Nenhum email selecionado para mover para lixeira");
+      return;
+    }
+    
+    trashEmails(selectedEmails);
+    setSelectedEmails([]);
+  };
+
+  const handleSelectEmail = (emailId: string, selected: boolean) => {
+    if (selected) {
+      setSelectedEmails(prev => [...prev, emailId]);
+    } else {
+      setSelectedEmails(prev => prev.filter(id => id !== emailId));
+    }
+  };
+
   // Log email count for debugging
   console.log('Email counts:', {
     inbox: emails.inbox.length,
@@ -83,13 +113,20 @@ const Dashboard = () => {
         
         <div className="flex-1 flex flex-col h-screen overflow-hidden">
           <KanbanHeader>
-            <div className="flex space-x-2">
-              <KanbanColumnEditor 
-                initialColumns={columns} 
-                onUpdateColumns={handleUpdateColumns} 
+            <div className="flex items-center justify-between">
+              <div className="flex space-x-2">
+                <KanbanColumnEditor 
+                  initialColumns={columns} 
+                  onUpdateColumns={handleUpdateColumns} 
+                />
+                <AdminUsersButton />
+                <OAuthHelpDialog />
+              </div>
+              
+              <KanbanHeaderActions 
+                onArchive={handleArchiveSelected}
+                onTrash={handleTrashSelected}
               />
-              <AdminUsersButton />
-              <OAuthHelpDialog />
             </div>
           </KanbanHeader>
           
@@ -102,6 +139,8 @@ const Dashboard = () => {
                   onDragEnd={handleDragEnd}
                   columns={columns}
                   onUpdateColumns={handleUpdateColumns}
+                  selectedEmails={selectedEmails}
+                  onSelectEmail={handleSelectEmail}
                 />
               </div>
               <TaskSidebar />

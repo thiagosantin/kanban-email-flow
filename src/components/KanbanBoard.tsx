@@ -31,6 +31,8 @@ interface KanbanBoardProps {
   onDragEnd: (result: any) => void;
   columns?: ColumnConfig[]; // Configuração de colunas opcional
   onUpdateColumns?: (columns: ColumnConfig[]) => void; // Callback para atualizar colunas
+  selectedEmails?: string[]; // Nova prop para emails selecionados
+  onSelectEmail?: (emailId: string, selected: boolean) => void; // Nova prop para callback de seleção
 }
 
 export function KanbanBoard({ 
@@ -38,7 +40,9 @@ export function KanbanBoard({
   isLoading, 
   onDragEnd,
   columns: externalColumns,
-  onUpdateColumns
+  onUpdateColumns,
+  selectedEmails = [],
+  onSelectEmail
 }: KanbanBoardProps) {
   // Colunas padrão baseadas nas status de email
   const defaultColumns: ColumnConfig[] = [
@@ -75,6 +79,8 @@ export function KanbanBoard({
               emails={columnEmails}
               count={columnEmails.length}
               color={column.color}
+              selectedEmails={selectedEmails}
+              onSelectEmail={onSelectEmail}
             />
           );
         })}

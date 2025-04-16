@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Email } from "@/types/email";
@@ -8,9 +9,11 @@ import { EmailViewer } from "./EmailViewer";
 
 interface EmailCardProps {
   email: Email;
+  selected?: boolean;
+  onSelect?: (selected: boolean) => void;
 }
 
-export function EmailCard({ email }: EmailCardProps) {
+export function EmailCard({ email, selected = false, onSelect }: EmailCardProps) {
   const [showEmailViewer, setShowEmailViewer] = useState(false);
   
   const initials = email.from_email
@@ -30,17 +33,38 @@ export function EmailCard({ email }: EmailCardProps) {
     setShowEmailViewer(true);
   };
 
+  const handleCheckboxChange = (event: React.MouseEvent) => {
+    // Impedir que o clique no checkbox abra o visualizador de e-mail
+    event.stopPropagation();
+    if (onSelect) {
+      onSelect(!selected);
+    }
+  };
+
   return (
     <>
       <div 
         className={cn(
-          "p-3 rounded-md border cursor-pointer hover:shadow-md transition-all",
-          email.read ? "bg-white border-kanban-gray-200" : "bg-kanban-blue/5 border-kanban-blue/30 font-medium"
+          "p-3 rounded-md border hover:shadow-md transition-all relative",
+          email.read ? "bg-white border-kanban-gray-200" : "bg-kanban-blue/5 border-kanban-blue/30 font-medium",
+          selected && "ring-2 ring-kanban-blue/40"
         )}
         onClick={handleEmailClick}
       >
+        {onSelect && (
+          <div 
+            className="absolute top-2 left-2" 
+            onClick={handleCheckboxChange}
+          >
+            <Checkbox 
+              checked={selected} 
+              className="h-4 w-4 border-kanban-gray-400"
+            />
+          </div>
+        )}
+        
         <div className="flex items-start space-x-2">
-          <Avatar className="h-8 w-8 mt-1">
+          <Avatar className="h-8 w-8 mt-1 ml-6">
             <AvatarImage src={`https://avatars.dicebear.com/api/initials/${email.from_email}.svg`} alt={email.from_email} />
             <AvatarFallback className="bg-kanban-blue/20 text-kanban-blue text-xs">
               {initials}

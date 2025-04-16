@@ -13,6 +13,8 @@ export function useEmails(folderId?: string) {
       let query = supabase
         .from('emails')
         .select('*')
+        .is('archived', null)  // Only get non-archived emails
+        .is('deleted', null)   // Only get non-deleted emails
         .order('date', { ascending: false });
       
       // If a folder ID is provided, filter by folder
@@ -64,6 +66,68 @@ export function useEmails(folderId?: string) {
     }
   });
 
+  const archiveEmails = useMutation({
+    mutationFn: async (emailIds: string[]) => {
+      console.log(`Archiving ${emailIds.length} emails`);
+      
+      const { data, error } = await supabase
+        .from('emails')
+        .update({ 
+          archived: true, 
+          updated_at: new Date().toISOString() 
+        })
+        .in('id', emailIds)
+        .select();
+
+      if (error) {
+        console.error('Error archiving emails:', error);
+        toast.error('Failed to archive emails');
+        throw error;
+      }
+
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['emails'] });
+      toast.success(`${data.length} emails arquivados com sucesso`);
+    },
+    onError: (error) => {
+      console.error('Archive error:', error);
+      toast.error('Falha ao arquivar emails');
+    }
+  });
+
+  const trashEmails = useMutation({
+    mutationFn: async (emailIds: string[]) => {
+      console.log(`Moving ${emailIds.length} emails to trash`);
+      
+      const { data, error } = await supabase
+        .from('emails')
+        .update({ 
+          deleted: true, 
+          updated_at: new Date().toISOString() 
+        })
+        .in('id', emailIds)
+        .select();
+
+      if (error) {
+        console.error('Error trashing emails:', error);
+        toast.error('Failed to move emails to trash');
+        throw error;
+      }
+
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['emails'] });
+      toast.success(`${data.length} emails movidos para lixeira`);
+    },
+    onError: (error) => {
+      console.error('Trash error:', error);
+      toast.error('Falha ao mover emails para lixeira');
+    }
+  });
+
   const emailsByStatus = emails.reduce((acc, email) => {
     if (!acc[email.status]) {
       acc[email.status] = [];
@@ -81,6 +145,8 @@ export function useEmails(folderId?: string) {
     },
     allEmails: emails,
     isLoading,
-    updateEmailStatus: updateEmailStatus.mutate
+    updateEmailStatus: updateEmailStatus.mutate,
+    archiveEmails: archiveEmails.mutate,
+    trashEmails: trashEmails.mutate
   };
 }

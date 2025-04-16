@@ -10,9 +10,19 @@ type KanbanColumnProps = {
   emails: Email[];
   count: number;
   color: "blue" | "yellow" | "purple" | "green" | "red" | "orange" | "pink";
+  selectedEmails?: string[];
+  onSelectEmail?: (emailId: string, selected: boolean) => void;
 };
 
-export function KanbanColumn({ id, title, emails, count, color }: KanbanColumnProps) {
+export function KanbanColumn({ 
+  id, 
+  title, 
+  emails, 
+  count, 
+  color,
+  selectedEmails = [],
+  onSelectEmail
+}: KanbanColumnProps) {
   const colorMap = {
     blue: "bg-kanban-blue text-white",
     yellow: "bg-kanban-yellow text-black",
@@ -51,7 +61,13 @@ export function KanbanColumn({ id, title, emails, count, color }: KanbanColumnPr
                     {...provided.dragHandleProps}
                     className={`mb-2 ${snapshot.isDragging ? "opacity-70" : ""}`}
                   >
-                    <EmailCard email={email} />
+                    <EmailCard 
+                      email={email}
+                      selected={selectedEmails.includes(email.id)}
+                      onSelect={onSelectEmail ? 
+                        (selected) => onSelectEmail(email.id, selected) : 
+                        undefined}
+                    />
                   </div>
                 )}
               </Draggable>
