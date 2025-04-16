@@ -27,8 +27,18 @@ export function useEmailAccount() {
   }, []);
 
   const checkUserAuth = async () => {
-    const { data } = await supabase.auth.getUser();
-    setIsLoggedIn(!!data.user);
+    try {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error('Auth error:', error);
+        setIsLoggedIn(false);
+        return;
+      }
+      setIsLoggedIn(!!data.user);
+    } catch (err) {
+      console.error('Auth check error:', err);
+      setIsLoggedIn(false);
+    }
   };
 
   const validateForm = () => {
@@ -125,7 +135,7 @@ export function useEmailAccount() {
       return true;
     } catch (error: any) {
       console.error('Failed to add email account:', error);
-      toast.error('Failed to add email account: ' + (error?.message || 'Unknown error'));
+      toast.error('Failed to add email account: ' + (error?.message || 'Unknown error occurred'));
       return false;
     } finally {
       setIsSubmitting(false);

@@ -33,6 +33,65 @@ serve(async (req) => {
     // Get the request body
     const { account_id, schedule } = await req.json() as ScheduleRequest;
 
+    if (!account_id) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Missing account_id parameter' 
+        }),
+        { 
+          status: 400, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
+    }
+
+    // Verify user is authorized to access this account
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: authError?.message || 'Not authenticated' 
+        }),
+        { 
+          status: 401, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
+    }
+
+    // Verify the account belongs to this user
+    const { data: account, error: accountError } = await supabaseClient
+      .from('email_accounts')
+      .select('id')
+      .eq('id', account_id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (accountError || !account) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Account not found or not authorized' 
+        }),
+        { 
+          status: 403, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
+    }
+
     // Create a new background job entry
     const { data, error } = await supabaseClient
       .from('background_jobs')
@@ -40,6 +99,7 @@ serve(async (req) => {
         type: 'email_sync',
         status: 'pending',
         account_id: account_id,
+        user_id: user.id,
         schedule: schedule,
         next_run_at: new Date().toISOString(),
         metadata: { scheduled: true }
@@ -50,20 +110,51 @@ serve(async (req) => {
     if (error) {
       console.error("Error creating job:", error);
       return new Response(
-        JSON.stringify({ success: false, error: error.message }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        JSON.stringify({ 
+          success: false, 
+          error: error.message || 'Failed to create sync job' 
+        }),
+        { 
+          status: 500, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
       );
     }
 
+    // Return success response
     return new Response(
-      JSON.stringify({ success: true, job_id: data.id }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        success: true, 
+        job_id: data.id,
+        message: 'Sync job scheduled successfully' 
+      }),
+      { 
+        status: 200, 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
     );
+
   } catch (error) {
-    console.error("Error in schedule-sync function:", error.message);
+    console.error("Error processing schedule request:", error);
+    
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      JSON.stringify({ 
+        success: false, 
+        error: error.message || 'Internal server error' 
+      }),
+      { 
+        status: 500, 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
     );
   }
 });

@@ -27,7 +27,13 @@ export function TestConnectionButton({ emailConfig, disabled }: TestConnectionBu
   const handleTestConnection = async () => {
     try {
       setTesting(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) {
+        console.error('Authentication error:', authError);
+        toast.error('Authentication error: ' + (authError.message || 'Failed to authenticate'));
+        return;
+      }
       
       if (!user) {
         toast.error('You must be logged in to test email account');
@@ -122,7 +128,7 @@ export function TestConnectionButton({ emailConfig, disabled }: TestConnectionBu
       toast.success('Connection test successful');
     } catch (error: any) {
       console.error('Connection test error:', error);
-      toast.error('Connection test failed: ' + (error?.message || 'Unknown error'));
+      toast.error('Connection test failed: ' + (error?.message || 'Unknown error occurred'));
     } finally {
       setTesting(false);
     }
