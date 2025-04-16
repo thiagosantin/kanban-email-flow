@@ -7,3 +7,7 @@ services:
     ports:
       - "80:80"
     restart: unless-stopped
+    environment:
+      # Override Supabase connection parameters here if needed
+      # - SUPABASE_URL=your-supabase-url
+      # - SUPABASE_ANON_KEY=your-supabase-anon-key
