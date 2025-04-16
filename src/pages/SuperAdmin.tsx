@@ -91,7 +91,7 @@ const SuperAdmin = () => {
   const [oauthConfigs, setOauthConfigs] = useState<Record<string, any>>({});
 
   useEffect(() => {
-    const checkAdminAccess = async () => {
+    const checkAuthAndFetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -100,22 +100,10 @@ const SuperAdmin = () => {
         return;
       }
       
-      const { data, error } = await supabase
-        .from('email_accounts')
-        .select('email')
-        .eq('user_id', user.id)
-        .single();
-        
-      if (error || !data) {
-        toast.error("Acesso não autorizado");
-        navigate("/dashboard");
-        return;
-      }
-      
       fetchData();
     };
     
-    checkAdminAccess();
+    checkAuthAndFetchData();
   }, [navigate]);
 
   const fetchData = async () => {
