@@ -10,6 +10,7 @@ import { TaskSidebar } from "@/components/TaskSidebar";
 import { KanbanColumnEditor } from "@/components/KanbanColumnEditor";
 import { OAuthHelpDialog } from "@/components/OAuthHelpDialog";
 import { AdminUsersButton } from "@/components/admin/AdminUsersButton";
+import { toast } from "sonner";
 import type { EmailStatus } from "@/types/email";
 
 // Tipo para configuração de colunas kanban
@@ -45,10 +46,20 @@ const Dashboard = () => {
       return;
     }
 
-    updateEmailStatus({
-      emailId: draggableId,
-      newStatus: destination.droppableId as EmailStatus
-    });
+    try {
+      // Only update if the status has actually changed
+      if (destination.droppableId !== source.droppableId) {
+        console.log(`Moving email ${draggableId} from ${source.droppableId} to ${destination.droppableId}`);
+        
+        updateEmailStatus({
+          emailId: draggableId,
+          newStatus: destination.droppableId as EmailStatus
+        });
+      }
+    } catch (error) {
+      console.error("Error in handleDragEnd:", error);
+      toast.error("Failed to update email status");
+    }
   };
 
   const handleUpdateColumns = (newColumns: ColumnConfig[]) => {

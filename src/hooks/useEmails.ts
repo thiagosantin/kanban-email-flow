@@ -26,21 +26,31 @@ export function useEmails() {
 
   const updateEmailStatus = useMutation({
     mutationFn: async ({ emailId, newStatus }: { emailId: string; newStatus: EmailStatus }) => {
+      console.log(`Updating email ${emailId} to status ${newStatus}`);
+      
+      // Use a direct update instead of the RPC function which is returning an error
       const { data, error } = await supabase
-        .rpc('update_email_status', {
-          email_id: emailId,
-          new_status: newStatus
-        });
+        .from('emails')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', emailId)
+        .select();
 
       if (error) {
+        console.error('Error updating email status:', error);
         toast.error('Failed to update email status');
         throw error;
       }
 
+      console.log('Email status updated successfully:', data);
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['emails'] });
+      toast.success('Email moved successfully');
+    },
+    onError: (error) => {
+      console.error('Mutation error:', error);
+      toast.error('Failed to move email');
     }
   });
 
