@@ -87,6 +87,25 @@ serve(async (req) => {
       inboxFolderId = inboxFolder ? inboxFolder.id : folders[0].id;
     }
 
+    // Check if the emails table has archived and deleted columns
+    let hasArchivedColumn = false;
+    let hasDeletedColumn = false;
+    
+    try {
+      // Try to select an email with archived and deleted columns
+      const { data: testEmail, error } = await supabase
+        .from("emails")
+        .select("archived, deleted")
+        .limit(1);
+        
+      if (!error) {
+        hasArchivedColumn = true;
+        hasDeletedColumn = true;
+      }
+    } catch (e) {
+      console.log("Table doesn't have archived/deleted columns yet");
+    }
+
     // Create sample emails
     const emails = [];
     const baseTimestamp = Date.now();
@@ -97,7 +116,8 @@ serve(async (req) => {
       // Randomly assign a status, with inbox being more common
       const randomStatusIndex = Math.floor(Math.random() * (i < 7 ? 1 : 4)); // 70% chance of "inbox" for first 7 emails
       
-      emails.push({
+      // Build the base email object
+      const email: any = {
         external_id: `sync-${account_id}-${timestamp.getTime()}`,
         subject: `Demo Email ${i + 1}: ${timestamp.toLocaleDateString()}`,
         from_email: "demo@example.com",
@@ -108,7 +128,18 @@ serve(async (req) => {
         account_id: account_id,
         folder_id: inboxFolderId, 
         status: statuses[randomStatusIndex]
-      });
+      };
+      
+      // Add archived and deleted properties if the columns exist
+      if (hasArchivedColumn) {
+        email.archived = false;
+      }
+      
+      if (hasDeletedColumn) {
+        email.deleted = false;
+      }
+      
+      emails.push(email);
     }
 
     // Insert emails with detailed error handling

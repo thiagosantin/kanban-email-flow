@@ -49,8 +49,8 @@ export interface Email {
   external_id: string;
   from_email: string;
   folder_id?: string | null;
-  archived?: boolean | null;  // Novo campo para emails arquivados
-  deleted?: boolean | null;   // Novo campo para emails na lixeira
+  archived?: boolean | null;  // Optional field for archived emails
+  deleted?: boolean | null;   // Optional field for emails in trash
 }
 
 // New BackgroundJob type that matches database structure
