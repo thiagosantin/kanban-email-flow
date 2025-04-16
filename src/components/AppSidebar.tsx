@@ -7,7 +7,6 @@ import {
   Mail, 
   MessageSquare, 
   Plus, 
-  RefreshCw,
   Shield 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,31 +19,18 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuItem,
   SidebarMenuButton,
+  SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Link, useNavigate } from "react-router-dom";
 import { useEmailAccounts } from "@/hooks/useEmailAccounts";
 import { EmailAccountsList } from "./email/EmailAccountsList";
 import { EmailAccountManager } from "./EmailAccountManager";
-import { useEmailSync } from "@/hooks/useEmailSync";
-import { toast } from "sonner";
 
 export function AppSidebar() {
   const navigate = useNavigate();
   const { accounts, isLoading } = useEmailAccounts();
-  const { syncAllAccounts, isSyncing } = useEmailSync();
-
-  const handleSyncAll = async () => {
-    try {
-      await syncAllAccounts(accounts);
-      toast.success('All accounts synced successfully');
-    } catch (error) {
-      console.error('Sync all error:', error);
-      toast.error('Failed to sync all accounts');
-    }
-  };
 
   return (
     <Sidebar>
@@ -61,23 +47,7 @@ export function AppSidebar() {
         </div>
         
         <SidebarGroup>
-          <div className="flex justify-between items-center px-2">
-            <SidebarGroupLabel>Connected Accounts</SidebarGroupLabel>
-            {accounts.length > 0 && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-6 w-6"
-                disabled={Object.values(isSyncing).some(Boolean)}
-                onClick={handleSyncAll}
-                title="Sync All Accounts"
-              >
-                <RefreshCw 
-                  className={`h-4 w-4 ${Object.values(isSyncing).some(Boolean) ? 'animate-spin' : ''}`} 
-                />
-              </Button>
-            )}
-          </div>
+          <SidebarGroupLabel>Connected Accounts</SidebarGroupLabel>
           <SidebarGroupContent>
             <EmailAccountsList accounts={accounts} isLoading={isLoading} />
           </SidebarGroupContent>

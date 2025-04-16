@@ -6,11 +6,10 @@ import { Button } from '@/components/ui/button';
 
 interface EmailFolderListProps {
   folders: EmailFolder[] | null;
-  accountId: string;
-  isLoading?: boolean;
+  isLoading: boolean;
 }
 
-export function EmailFolderList({ folders, accountId, isLoading }: EmailFolderListProps) {
+export function EmailFolderList({ folders, isLoading }: EmailFolderListProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (!folders || folders.length === 0) {
