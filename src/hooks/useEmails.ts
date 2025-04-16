@@ -4,22 +4,32 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Email, EmailStatus } from '@/types/email';
 
-export function useEmails() {
+export function useEmails(folderId?: string) {
   const queryClient = useQueryClient();
 
   const { data: emails = [], isLoading } = useQuery({
-    queryKey: ['emails'],
+    queryKey: ['emails', folderId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('emails')
         .select('*')
         .order('date', { ascending: false });
+      
+      // If a folder ID is provided, filter by folder
+      if (folderId) {
+        query = query.eq('folder_id', folderId);
+        console.log('Fetching emails for folder:', folderId);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
+        console.error('Error fetching emails:', error);
         toast.error('Failed to load emails');
         throw error;
       }
 
+      console.log(`Fetched ${data?.length || 0} emails${folderId ? ' for folder ' + folderId : ''}`);
       return data as Email[];
     }
   });
@@ -69,6 +79,7 @@ export function useEmails() {
       processing: emailsByStatus.processing || [],
       done: emailsByStatus.done || []
     },
+    allEmails: emails,
     isLoading,
     updateEmailStatus: updateEmailStatus.mutate
   };

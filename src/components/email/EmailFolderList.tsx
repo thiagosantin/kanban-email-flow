@@ -3,14 +3,17 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Folder, Mail, Inbox, Send, Archive, FileWarning, Trash, Star } from 'lucide-react';
 import { EmailFolder } from '@/types/email';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 interface EmailFolderListProps {
   folders: EmailFolder[] | null;
   isLoading: boolean;
+  onFolderClick?: (folderId: string) => void;
 }
 
-export function EmailFolderList({ folders, isLoading }: EmailFolderListProps) {
+export function EmailFolderList({ folders, isLoading, onFolderClick }: EmailFolderListProps) {
   const [isExpanded, setIsExpanded] = useState(true);
+  const navigate = useNavigate();
 
   if (isLoading) {
     return (
@@ -44,6 +47,16 @@ export function EmailFolderList({ folders, isLoading }: EmailFolderListProps) {
     }
   };
 
+  const handleFolderClick = (folderId: string) => {
+    console.log('Folder clicked:', folderId);
+    if (onFolderClick) {
+      onFolderClick(folderId);
+    } else {
+      // If no callback is provided, navigate to a folder view
+      navigate(`/emails/folder/${folderId}`);
+    }
+  };
+
   return (
     <div className="pl-4">
       <Button
@@ -69,6 +82,7 @@ export function EmailFolderList({ folders, isLoading }: EmailFolderListProps) {
               variant="ghost"
               size="sm"
               className="w-full justify-start pl-8"
+              onClick={() => handleFolderClick(folder.id)}
             >
               {getFolderIcon(folder.type)}
               {folder.name}

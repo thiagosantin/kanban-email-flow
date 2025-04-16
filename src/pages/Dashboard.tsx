@@ -12,6 +12,7 @@ import { OAuthHelpDialog } from "@/components/OAuthHelpDialog";
 import { AdminUsersButton } from "@/components/admin/AdminUsersButton";
 import { toast } from "sonner";
 import type { EmailStatus } from "@/types/email";
+import { useEmailAccounts } from "@/hooks/useEmailAccounts";
 
 // Tipo para configuração de colunas kanban
 type ColumnConfig = {
@@ -22,6 +23,7 @@ type ColumnConfig = {
 
 const Dashboard = () => {
   const { emails, isLoading, updateEmailStatus } = useEmails();
+  const { accounts, isLoading: accountsLoading } = useEmailAccounts();
   const navigate = useNavigate();
   
   // Configuração inicial das colunas
@@ -66,6 +68,14 @@ const Dashboard = () => {
     setColumns(newColumns);
   };
 
+  // Log email count for debugging
+  console.log('Email counts:', {
+    inbox: emails.inbox.length,
+    awaiting: emails.awaiting.length,
+    processing: emails.processing.length, 
+    done: emails.done.length
+  });
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex flex-col md:flex-row bg-kanban-gray-100">
@@ -88,7 +98,7 @@ const Dashboard = () => {
               <div className="flex-1 overflow-x-auto">
                 <KanbanBoard 
                   emails={emails}
-                  isLoading={isLoading}
+                  isLoading={isLoading || accountsLoading}
                   onDragEnd={handleDragEnd}
                   columns={columns}
                   onUpdateColumns={handleUpdateColumns}
