@@ -27,6 +27,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useEmailAccounts } from "@/hooks/useEmailAccounts";
 import { EmailAccountsList } from "./email/EmailAccountsList";
 import { EmailAccountManager } from "./EmailAccountManager";
+import { LogoutButton } from "./LogoutButton";
 
 export function AppSidebar() {
   const navigate = useNavigate();
@@ -87,10 +88,16 @@ export function AppSidebar() {
       </SidebarContent>
       
       <SidebarFooter>
-        <Button variant="ghost" className="w-full justify-start" onClick={() => navigate("/settings")}>
+        <Button 
+          variant="ghost" 
+          className="w-full justify-start" 
+          onClick={() => navigate("/settings")}
+        >
           <Cog className="h-5 w-5 mr-3" />
-          <span>Settings</span>
+          <span>Configurações</span>
         </Button>
+        
+        <LogoutButton />
       </SidebarFooter>
     </Sidebar>
   );

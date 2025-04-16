@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -26,6 +25,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
+import { LogoutButton } from "./LogoutButton";
 
 export function SuperAdminSidebar() {
   const navigate = useNavigate();
@@ -171,6 +171,8 @@ export function SuperAdminSidebar() {
           <Settings className="h-5 w-5 mr-3" />
           <span>Configurações</span>
         </Button>
+
+        <LogoutButton />
       </SidebarFooter>
     </Sidebar>
   );
