@@ -41,7 +41,7 @@ export function TestConnectionButton({ emailConfig, disabled }: TestConnectionBu
         return;
       }
 
-      if (emailConfig.host) {
+      if (emailConfig.provider === 'imap' || emailConfig.provider === 'pop3') {
         // It's a manual connection, validate additional fields
         if (!emailConfig.username) {
           toast.error('Username is required');
@@ -88,7 +88,7 @@ export function TestConnectionButton({ emailConfig, disabled }: TestConnectionBu
         user_id: user.id,
         provider: emailConfig.provider,
         email: testEmail, // Use the unique test email
-        auth_type: emailConfig.host ? 'basic' : 'oauth2',
+        auth_type: emailConfig.host ? 'imap' : 'oauth2',
         host: emailConfig.host,
         port: emailConfig.port ? parseInt(emailConfig.port) : null,
         username: emailConfig.username,

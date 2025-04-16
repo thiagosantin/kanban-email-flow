@@ -22,26 +22,47 @@ export function useEmailAccounts() {
           return [];
         }
 
-        const { data, error } = await supabase
+        // First, fetch the email accounts
+        const { data: accountsData, error: accountsError } = await supabase
           .from('email_accounts')
-          .select('*, folders(*)');
+          .select('*');
 
-        if (error) {
-          console.error('Error fetching email accounts:', error);
-          toast.error('Failed to load email accounts: ' + error.message);
-          throw error;
+        if (accountsError) {
+          console.error('Error fetching email accounts:', accountsError);
+          toast.error('Failed to load email accounts: ' + accountsError.message);
+          throw accountsError;
         }
 
-        if (!data) {
-          console.warn('No data returned from email_accounts query');
+        if (!accountsData) {
+          console.warn('No email accounts data returned');
           return [];
         }
 
-        // Convert the Supabase result to the correct type
-        return (data as any[]).map(account => ({
-          ...account,
-          folders: Array.isArray(account.folders) ? account.folders : []
-        })) as EmailAccount[];
+        // Then, for each account, fetch its folders
+        const accountsWithFolders = await Promise.all(
+          accountsData.map(async (account) => {
+            const { data: foldersData, error: foldersError } = await supabase
+              .from('email_folders')
+              .select('*')
+              .eq('account_id', account.id);
+
+            if (foldersError) {
+              console.error(`Error fetching folders for account ${account.id}:`, foldersError);
+              // Don't fail the whole operation, just return the account without folders
+              return {
+                ...account,
+                folders: []
+              };
+            }
+
+            return {
+              ...account,
+              folders: foldersData || []
+            };
+          })
+        );
+
+        return accountsWithFolders as EmailAccount[];
       } catch (err: any) {
         console.error('Unexpected error in useEmailAccounts:', err);
         toast.error('Failed to load email accounts: ' + (err.message || 'Unknown error'));
