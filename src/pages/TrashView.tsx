@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -92,7 +91,6 @@ const TrashView = () => {
         throw error;
       }
       
-      // Clear cache for immediate UI update
       Object.keys(cacheService.keys()).forEach(key => {
         if (key.startsWith('emails_')) {
           cacheService.delete(key);
@@ -102,7 +100,6 @@ const TrashView = () => {
       toast.success(`${data.length} emails restaurados com sucesso`);
       setSelectedEmails([]);
       
-      // Refresh the trash view
       fetchTrashedEmails();
     } catch (error) {
       console.error('Failed to restore emails:', error);
@@ -188,7 +185,6 @@ const TrashView = () => {
           
           <div className="p-4 flex-1 overflow-auto">
             {isMobile ? (
-              // Mobile layout
               <div className="flex flex-col h-full">
                 <div className="flex-1 mb-4">
                   {renderEmailList()}
@@ -199,7 +195,6 @@ const TrashView = () => {
                 </div>
               </div>
             ) : (
-              // Desktop layout with resizable panels
               <ResizablePanelGroup direction="horizontal" className="min-h-[calc(100vh-130px)]">
                 <ResizablePanel defaultSize={75} minSize={50}>
                   <div className="h-full pr-2 overflow-auto">
