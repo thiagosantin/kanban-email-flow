@@ -35,12 +35,44 @@ export function TestConnectionButton({ emailConfig, disabled }: TestConnectionBu
         return;
       }
 
+      // Validate required fields before proceeding
+      if (!emailConfig.email) {
+        toast.error('Email address is required');
+        return;
+      }
+
+      if (emailConfig.host) {
+        // It's a manual connection, validate additional fields
+        if (!emailConfig.username) {
+          toast.error('Username is required');
+          return;
+        }
+        if (!emailConfig.password) {
+          toast.error('Password is required');
+          return;
+        }
+        if (!emailConfig.host) {
+          toast.error('Server address is required');
+          return;
+        }
+        if (!emailConfig.port) {
+          toast.error('Port is required');
+          return;
+        }
+      }
+
       // First, check if this email already exists for the user
-      const { data: existingAccounts } = await supabase
+      const { data: existingAccounts, error: fetchError } = await supabase
         .from('email_accounts')
         .select('id')
         .eq('user_id', user.id)
         .eq('email', emailConfig.email);
+
+      if (fetchError) {
+        console.error('Error checking existing accounts:', fetchError);
+        toast.error('Failed to check if account already exists');
+        return;
+      }
 
       if (existingAccounts && existingAccounts.length > 0) {
         // We're testing an existing account
@@ -69,16 +101,28 @@ export function TestConnectionButton({ emailConfig, disabled }: TestConnectionBu
         last_synced: null
       }).select();
 
-      if (testError) throw testError;
+      if (testError) {
+        console.error('Error in test connection:', testError);
+        toast.error(`Connection test failed: ${testError.message}`);
+        return;
+      }
       
       // If the test was successful, delete the test account to avoid cluttering the database
       if (testData && testData.length > 0) {
         const testAccountId = testData[0].id;
-        await supabase.from('email_accounts').delete().eq('id', testAccountId);
+        const { error: deleteError } = await supabase
+          .from('email_accounts')
+          .delete()
+          .eq('id', testAccountId);
+          
+        if (deleteError) {
+          console.error('Error cleaning up test account:', deleteError);
+        }
       }
       
       toast.success('Connection test successful');
     } catch (error: any) {
+      console.error('Connection test error:', error);
       toast.error('Connection test failed: ' + error.message);
     } finally {
       setTesting(false);

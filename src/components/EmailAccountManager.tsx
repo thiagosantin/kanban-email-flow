@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,7 @@ export function EmailAccountManager() {
   const [password, setPassword] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -47,13 +49,70 @@ export function EmailAccountManager() {
     setIsLoggedIn(!!data.user);
   };
 
+  const validateForm = () => {
+    if (!email) {
+      toast.error('Email address is required');
+      return false;
+    }
+
+    if (connectionType !== 'oauth2') {
+      if (!username) {
+        toast.error('Username is required');
+        return false;
+      }
+      if (!password) {
+        toast.error('Password is required');
+        return false;
+      }
+      if (!host) {
+        toast.error('Server address is required');
+        return false;
+      }
+      if (!port) {
+        toast.error('Port is required');
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
   const handleAddAccount = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
     try {
-      const { data: authData } = await supabase.auth.getUser();
+      setIsSubmitting(true);
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) {
+        console.error('Authentication error:', authError);
+        toast.error('Authentication error: ' + authError.message);
+        return;
+      }
       
       if (!authData?.user) {
         toast.error('You must be logged in to add an email account');
         setOpen(false);
+        return;
+      }
+
+      // Check if this email already exists for the user
+      const { data: existingAccounts, error: fetchError } = await supabase
+        .from('email_accounts')
+        .select('id')
+        .eq('user_id', authData.user.id)
+        .eq('email', email);
+
+      if (fetchError) {
+        console.error('Error checking existing accounts:', fetchError);
+        toast.error('Failed to check if account already exists');
+        return;
+      }
+
+      if (existingAccounts && existingAccounts.length > 0) {
+        toast.error('This email account is already connected');
         return;
       }
       
@@ -69,10 +128,15 @@ export function EmailAccountManager() {
           username: connectionType !== 'oauth2' ? username : null,
           password: connectionType !== 'oauth2' ? password : null,
           access_token: null,
-          refresh_token: null
+          refresh_token: null,
+          sync_interval_minutes: 15,
+          last_synced: null
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error adding email account:', error);
+        throw error;
+      }
 
       toast.success('Email account added successfully');
       setEmail('');
@@ -81,9 +145,11 @@ export function EmailAccountManager() {
       setUsername('');
       setPassword('');
       setOpen(false);
-    } catch (error) {
-      toast.error('Failed to add email account');
-      console.error(error);
+    } catch (error: any) {
+      console.error('Failed to add email account:', error);
+      toast.error('Failed to add email account: ' + (error.message || 'Unknown error'));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -159,9 +225,20 @@ export function EmailAccountManager() {
                   username,
                   password,
                 }}
+                disabled={isSubmitting}
               />
-              <Button onClick={handleAddAccount} className="w-full md:w-auto">
-                <Mail className="mr-2 h-4 w-4" /> Connect Account
+              <Button 
+                onClick={handleAddAccount} 
+                className="w-full md:w-auto"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  "Connecting..."
+                ) : (
+                  <>
+                    <Mail className="mr-2 h-4 w-4" /> Connect Account
+                  </>
+                )}
               </Button>
             </div>
           </div>
