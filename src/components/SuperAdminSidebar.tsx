@@ -1,5 +1,6 @@
+
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { 
   Activity, 
   Clock, 
@@ -26,9 +27,15 @@ import {
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { LogoutButton } from "./LogoutButton";
+import { useBackgroundJobs } from "@/hooks/useBackgroundJobs";
 
 export function SuperAdminSidebar() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { jobs = [] } = useBackgroundJobs();
+  
+  const failedJobs = jobs.filter(job => job.status === 'failed').length;
+  const pendingJobs = jobs.filter(job => job.status === 'pending').length;
   
   // Items do menu principal
   const mainItems = [
@@ -36,31 +43,36 @@ export function SuperAdminSidebar() {
       title: "Dashboard",
       icon: LayoutDashboard,
       url: "/admin",
-      badge: null
+      badge: null,
+      active: location.pathname === '/admin'
     },
     {
       title: "Tarefas & Cron",
       icon: Clock,
-      url: "/admin",
-      badge: 3
+      url: "/admin?tab=tasks",
+      badge: pendingJobs > 0 ? pendingJobs : null,
+      active: location.pathname === '/admin' && location.search.includes('tab=tasks')
     },
     {
       title: "Usuários",
       icon: Users,
-      url: "/admin",
-      badge: null
+      url: "/admin?tab=users",
+      badge: null,
+      active: location.pathname === '/admin' && location.search.includes('tab=users')
     },
     {
       title: "Banco de Dados",
       icon: Database,
-      url: "/admin",
-      badge: null
+      url: "/admin?tab=database",
+      badge: null,
+      active: location.pathname === '/admin' && location.search.includes('tab=database')
     },
     {
       title: "Servidor",
       icon: Server, 
-      url: "/admin",
-      badge: null
+      url: "/admin?tab=server",
+      badge: null,
+      active: location.pathname === '/admin' && location.search.includes('tab=server')
     }
   ];
 
@@ -69,20 +81,23 @@ export function SuperAdminSidebar() {
     {
       title: "Email Sync",
       icon: Mail,
-      url: "/admin",
-      badge: null
+      url: "/admin?tab=accounts",
+      badge: null,
+      active: location.pathname === '/admin' && location.search.includes('tab=accounts')
     },
     {
       title: "Background Jobs",
       icon: Zap,
-      url: "/admin",
-      badge: 2
+      url: "/admin?tab=jobs",
+      badge: failedJobs > 0 ? failedJobs : null,
+      active: location.pathname === '/admin' && location.search.includes('tab=jobs')
     },
     {
       title: "Atividade",
       icon: Activity,
-      url: "/admin",
-      badge: null
+      url: "/admin?tab=logs",
+      badge: null,
+      active: location.pathname === '/admin' && location.search.includes('tab=logs')
     }
   ];
 
@@ -105,7 +120,7 @@ export function SuperAdminSidebar() {
                   <SidebarMenuButton asChild>
                     <div 
                       onClick={() => navigate(item.url)}
-                      className="flex justify-between cursor-pointer"
+                      className={`flex justify-between cursor-pointer ${item.active ? 'bg-gray-100 rounded' : ''}`}
                     >
                       <div className="flex items-center">
                         <item.icon className="h-5 w-5 mr-3" />
@@ -133,7 +148,7 @@ export function SuperAdminSidebar() {
                   <SidebarMenuButton asChild>
                     <div 
                       onClick={() => navigate(item.url)}
-                      className="flex justify-between cursor-pointer"
+                      className={`flex justify-between cursor-pointer ${item.active ? 'bg-gray-100 rounded' : ''}`}
                     >
                       <div className="flex items-center">
                         <item.icon className="h-5 w-5 mr-3" />

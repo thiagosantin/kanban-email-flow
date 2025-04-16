@@ -1,27 +1,11 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  Activity, 
-  Clock, 
-  Database, 
-  LayoutDashboard, 
-  Server, 
-  Settings, 
-  Users, 
-  Zap,
-  PlayCircle,
-  PauseCircle,
-  RefreshCw,
-  Trash,
-  AlertTriangle,
-  Mail
-} from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Card, 
   CardContent, 
-  CardDescription, 
-  CardFooter, 
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
@@ -31,39 +15,16 @@ import {
   TabsList, 
   TabsTrigger 
 } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
 import { toast } from "sonner";
-import { BackgroundJob, JobStatus, EmailAccount } from "@/types/email";
+import { EmailAccount } from "@/types/email";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { SuperAdminSidebar } from "@/components/SuperAdminSidebar";
 import { OAuthHelpDialog } from "@/components/OAuthHelpDialog";
 import { OAuthConfigurationForm } from "@/components/admin/OAuthConfigurationForm";
 import { SystemLogsViewer } from "@/components/admin/SystemLogsViewer";
-
-type Task = {
-  id: string;
-  name: string;
-  status: JobStatus;
-  type: 'sync' | 'cron' | 'background';
-  created_at: string;
-  updated_at: string;
-  owner_id: string;
-  owner_email: string;
-  last_run: string | null;
-  next_run: string | null;
-  frequency: string;
-  error?: string | null;
-};
+import { TasksPanel } from "@/components/admin/TasksPanel";
+import { EmailAccountsPanel } from "@/components/admin/EmailAccountsPanel";
 
 type SystemStats = {
   activeUsers: number;
@@ -76,7 +37,6 @@ type SystemStats = {
 
 const SuperAdmin = () => {
   const navigate = useNavigate();
-  const [tasks, setTasks] = useState<Task[]>([]);
   const [accounts, setAccounts] = useState<EmailAccount[]>([]);
   const [stats, setStats] = useState<SystemStats>({
     activeUsers: 0,
@@ -87,7 +47,6 @@ const SuperAdmin = () => {
     avgSyncTime: 2.3,
   });
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [oauthConfigs, setOauthConfigs] = useState<Record<string, any>>({});
 
   useEffect(() => {
@@ -120,40 +79,15 @@ const SuperAdmin = () => {
       
       const { data: jobsData, error: jobsError } = await supabase
         .from('background_jobs')
-        .select('*, email_accounts(email)')
-        .order('created_at', { ascending: false });
+        .select('*');
 
       if (jobsError) throw jobsError;
       
-      const transformedTasks: Task[] = (jobsData || []).map((job: any) => {
-        const jobType = job.type === 'email_sync' ? 'sync' : 
-                       (job.schedule ? 'cron' : 'background');
-        
-        return {
-          id: job.id,
-          name: job.type === 'email_sync' 
-            ? `Sync: ${job.email_accounts?.email || 'Unknown email'}`
-            : `Job: ${job.type}`,
-          status: job.status,
-          type: jobType,
-          created_at: job.created_at,
-          updated_at: job.completed_at || job.started_at || job.created_at,
-          owner_id: job.user_id || '',
-          owner_email: job.email_accounts?.email || 'System',
-          last_run: job.started_at,
-          next_run: job.next_run_at,
-          frequency: job.schedule || 'One-time',
-          error: job.error
-        };
-      });
-      
-      setTasks(transformedTasks);
-      
       setStats({
         activeUsers: 2,
-        totalTasks: transformedTasks.length,
-        activeTasks: transformedTasks.filter(t => t.status === "running").length,
-        failedTasks: transformedTasks.filter(t => t.status === "failed").length,
+        totalTasks: jobsData?.length || 0,
+        activeTasks: jobsData?.filter(t => t.status === "running").length || 0,
+        failedTasks: jobsData?.filter(t => t.status === "failed").length || 0,
         emailAccounts: emailAccounts.length,
         avgSyncTime: 2.3
       });
@@ -189,67 +123,6 @@ const SuperAdmin = () => {
   useEffect(() => {
     fetchOAuthConfigs();
   }, []);
-
-  const formatDateTime = (dateString: string | null) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleString('pt-BR', { 
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const handleTaskAction = async (taskId: string, action: string) => {
-    setActionLoading(prev => ({ ...prev, [taskId]: true }));
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('admin-manage-tasks', {
-        body: { taskId, action }
-      });
-
-      if (error) throw error;
-      
-      await fetchData(); // Refresh data after action
-      toast.success(`Task ${action} successful`);
-    } catch (error: any) {
-      console.error(`Error performing ${action} on task:`, error.message);
-      toast.error(`Error: ${error.message}`);
-    } finally {
-      setActionLoading(prev => ({ ...prev, [taskId]: false }));
-    }
-  };
-
-  const getStatusBadge = (status: Task["status"]) => {
-    switch (status) {
-      case "running":
-        return <Badge className="bg-green-500">Ativo</Badge>;
-      case "pending":
-        return <Badge variant="outline" className="text-amber-500 border-amber-500">Pendente</Badge>;
-      case "failed":
-        return <Badge variant="destructive">Falhou</Badge>;
-      case "completed":
-        return <Badge className="bg-blue-500">Completo</Badge>;
-      case "cancelled":
-        return <Badge variant="outline">Cancelado</Badge>;
-      default:
-        return <Badge variant="outline">Desconhecido</Badge>;
-    }
-  };
-
-  const getTaskTypeIcon = (type: Task["type"]) => {
-    switch (type) {
-      case "sync":
-        return <RefreshCw className="h-4 w-4 text-blue-500" />;
-      case "cron":
-        return <Clock className="h-4 w-4 text-amber-500" />;
-      case "background":
-        return <Zap className="h-4 w-4 text-purple-500" />;
-      default:
-        return <Activity className="h-4 w-4" />;
-    }
-  };
 
   return (
     <SidebarProvider>
@@ -324,187 +197,11 @@ const SuperAdmin = () => {
               </TabsList>
               
               <TabsContent value="tasks">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Gerenciador de Tarefas</CardTitle>
-                    <CardDescription>
-                      Gerencie tarefas em background, sincronizações e cron jobs
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {loading ? (
-                      <div className="py-8 flex justify-center items-center">
-                        <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
-                      </div>
-                    ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-10">Tipo</TableHead>
-                            <TableHead>Nome</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Última Execução</TableHead>
-                            <TableHead>Próxima Execução</TableHead>
-                            <TableHead>Frequência</TableHead>
-                            <TableHead>Usuário</TableHead>
-                            <TableHead className="text-right">Ações</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {tasks.length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                                Nenhuma tarefa encontrada
-                              </TableCell>
-                            </TableRow>
-                          ) : (
-                            tasks.map((task) => (
-                              <React.Fragment key={task.id}>
-                                <TableRow>
-                                  <TableCell>{getTaskTypeIcon(task.type)}</TableCell>
-                                  <TableCell className="font-medium">{task.name}</TableCell>
-                                  <TableCell>{getStatusBadge(task.status)}</TableCell>
-                                  <TableCell>{formatDateTime(task.last_run)}</TableCell>
-                                  <TableCell>{formatDateTime(task.next_run)}</TableCell>
-                                  <TableCell>{task.frequency}</TableCell>
-                                  <TableCell>{task.owner_email}</TableCell>
-                                  <TableCell className="text-right">
-                                    <div className="flex justify-end space-x-1">
-                                      {task.status === "running" ? (
-                                        <Button 
-                                          variant="outline" 
-                                          size="icon"
-                                          onClick={() => handleTaskAction(task.id, "pause")}
-                                          disabled={actionLoading[task.id]}
-                                        >
-                                          {actionLoading[task.id] ? 
-                                            <RefreshCw className="h-4 w-4 animate-spin" /> : 
-                                            <PauseCircle className="h-4 w-4" />
-                                          }
-                                        </Button>
-                                      ) : (
-                                        <Button 
-                                          variant="outline" 
-                                          size="icon"
-                                          onClick={() => handleTaskAction(task.id, "start")}
-                                          disabled={actionLoading[task.id]}
-                                        >
-                                          {actionLoading[task.id] ? 
-                                            <RefreshCw className="h-4 w-4 animate-spin" /> : 
-                                            <PlayCircle className="h-4 w-4" />
-                                          }
-                                        </Button>
-                                      )}
-                                      
-                                      {task.status === "failed" && (
-                                        <Button 
-                                          variant="outline" 
-                                          size="icon"
-                                          onClick={() => handleTaskAction(task.id, "retry")}
-                                          disabled={actionLoading[task.id]}
-                                        >
-                                          {actionLoading[task.id] ? 
-                                            <RefreshCw className="h-4 w-4 animate-spin" /> : 
-                                            <RefreshCw className="h-4 w-4" />
-                                          }
-                                        </Button>
-                                      )}
-                                      
-                                      <Button 
-                                        variant="outline" 
-                                        size="icon"
-                                        onClick={() => handleTaskAction(task.id, "delete")}
-                                        disabled={actionLoading[task.id]}
-                                        className="text-red-500 hover:text-red-600"
-                                      >
-                                        {actionLoading[task.id] ? 
-                                          <RefreshCw className="h-4 w-4 animate-spin" /> : 
-                                          <Trash className="h-4 w-4" />
-                                        }
-                                      </Button>
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                                
-                                {task.error && (
-                                  <TableRow className="bg-red-50">
-                                    <TableCell colSpan={8} className="py-2 px-4 text-red-600 text-sm flex items-center">
-                                      <AlertTriangle className="h-4 w-4 mr-2" />
-                                      {task.error}
-                                    </TableCell>
-                                  </TableRow>
-                                )}
-                              </React.Fragment>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
-                    )}
-                  </CardContent>
-                </Card>
+                <TasksPanel />
               </TabsContent>
               
               <TabsContent value="accounts">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Contas de Email Conectadas</CardTitle>
-                    <CardDescription>
-                      Visualize todas as contas de email configuradas no sistema
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {loading ? (
-                      <div className="py-8 flex justify-center items-center">
-                        <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
-                      </div>
-                    ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Provedor</TableHead>
-                            <TableHead>Tipo de Autenticação</TableHead>
-                            <TableHead>Última Sincronização</TableHead>
-                            <TableHead>Intervalo</TableHead>
-                            <TableHead>Status</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {accounts.length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                                Nenhuma conta de email encontrada
-                              </TableCell>
-                            </TableRow>
-                          ) : (
-                            accounts.map((account) => (
-                              <TableRow key={account.id}>
-                                <TableCell className="font-medium">{account.email}</TableCell>
-                                <TableCell>{account.provider}</TableCell>
-                                <TableCell>{account.auth_type}</TableCell>
-                                <TableCell>
-                                  {account.last_synced ? 
-                                    formatDateTime(account.last_synced) : 
-                                    "Nunca sincronizado"}
-                                </TableCell>
-                                <TableCell>
-                                  {account.sync_interval_minutes ? 
-                                    `${account.sync_interval_minutes} minutos` : 
-                                    "Manual"}
-                                </TableCell>
-                                <TableCell>
-                                  {account.last_synced ? 
-                                    <Badge className="bg-green-500">Ativo</Badge> : 
-                                    <Badge variant="outline">Não Configurado</Badge>}
-                                </TableCell>
-                              </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
-                    )}
-                  </CardContent>
-                </Card>
+                <EmailAccountsPanel />
               </TabsContent>
               
               <TabsContent value="system">
@@ -560,7 +257,7 @@ const SuperAdmin = () => {
                         </div>
                       </div>
                       
-                      <Separator />
+                      <div className="h-1 bg-gray-100 my-6"></div>
                       
                       <div>
                         <h3 className="text-lg font-semibold mb-4">OAuth Configuration</h3>
@@ -568,7 +265,6 @@ const SuperAdmin = () => {
                           <Card>
                             <CardHeader className="pb-2">
                               <CardTitle className="text-base font-medium flex items-center gap-2">
-                                <Mail className="h-4 w-4 text-red-500" />
                                 Gmail OAuth
                               </CardTitle>
                             </CardHeader>
@@ -584,7 +280,6 @@ const SuperAdmin = () => {
                           <Card>
                             <CardHeader className="pb-2">
                               <CardTitle className="text-base font-medium flex items-center gap-2">
-                                <Mail className="h-4 w-4 text-blue-500" />
                                 Outlook OAuth
                               </CardTitle>
                             </CardHeader>

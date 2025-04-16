@@ -75,8 +75,14 @@ export function useEmailSync() {
       return;
     }
 
-    for (const account of accounts) {
-      await syncEmailsMutation.mutateAsync(account.id);
+    setIsSyncing(prev => ({ ...prev, ["all"]: true }));
+    
+    try {
+      for (const account of accounts) {
+        await syncEmailsMutation.mutateAsync(account.id);
+      }
+    } finally {
+      setIsSyncing(prev => ({ ...prev, ["all"]: false }));
     }
   };
 

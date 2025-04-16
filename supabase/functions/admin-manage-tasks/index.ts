@@ -69,7 +69,7 @@ serve(async (req) => {
     if (updateError) throw updateError;
 
     // If the action was "start" and it's an email sync task, trigger the sync
-    if (action === "start" || action === "retry") {
+    if ((action === "start" || action === "retry") && newStatus === "running") {
       const { data: task } = await supabase
         .from("background_jobs")
         .select("type, account_id")
@@ -91,8 +91,18 @@ serve(async (req) => {
         );
         
         if (!syncResponse.ok) {
-          throw new Error("Failed to trigger email sync");
+          const errorResponse = await syncResponse.json();
+          throw new Error(`Failed to trigger email sync: ${errorResponse.error || "Unknown error"}`);
         }
+        
+        // Mark the job as completed after successful sync
+        await supabase.rpc(
+          "update_job_status",
+          {
+            p_job_id: taskId,
+            p_status: "completed",
+          }
+        );
       }
     }
 
