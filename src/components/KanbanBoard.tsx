@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { DragDropContext } from "react-beautiful-dnd";
 import { KanbanColumn } from "@/components/KanbanColumn";
 import { Loader2 } from "lucide-react";
