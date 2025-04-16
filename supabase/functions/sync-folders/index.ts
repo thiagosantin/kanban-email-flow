@@ -31,6 +31,7 @@ serve(async (req) => {
     } = await supabaseClient.auth.getUser();
 
     if (userError) {
+      console.error("Auth error:", userError);
       return new Response(
         JSON.stringify({ error: 'Unauthorized: ' + userError.message }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -38,6 +39,7 @@ serve(async (req) => {
     }
 
     if (!user) {
+      console.error("No user found");
       return new Response(
         JSON.stringify({ error: 'User not authenticated' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -45,14 +47,28 @@ serve(async (req) => {
     }
 
     // Parse the request body
-    const { account_id } = await req.json() as SyncFoldersRequest;
+    let requestData: SyncFoldersRequest;
+    try {
+      requestData = await req.json() as SyncFoldersRequest;
+    } catch (error) {
+      console.error("Failed to parse request body:", error);
+      return new Response(
+        JSON.stringify({ error: 'Invalid request format' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { account_id } = requestData;
 
     if (!account_id) {
+      console.error("Missing account_id in request");
       return new Response(
         JSON.stringify({ error: 'Missing account_id in request body' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log(`Processing folder sync for account: ${account_id}, user: ${user.id}`);
 
     // Verify the user owns this account
     const { data: account, error: accountError } = await supabaseClient
@@ -62,10 +78,19 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single();
 
-    if (accountError || !account) {
+    if (accountError) {
+      console.error(`Account error: ${accountError.message}, Code: ${accountError.code}`);
       return new Response(
         JSON.stringify({ error: 'Account not found or not owned by user' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!account) {
+      console.error("Account not found");
+      return new Response(
+        JSON.stringify({ error: 'Account not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -77,16 +102,17 @@ serve(async (req) => {
         status: 'running',
         account_id: account_id,
         user_id: user.id,
-        metadata: { trigger: 'manual', account_email: account.email, operation: 'sync_folders' }
+        metadata: { trigger: 'manual', account_email: account.email, operation: 'folder_sync' }
       })
       .select()
       .single();
 
     if (jobError) {
       console.error('Error creating job:', jobError);
+      // Non-critical error, continue with sync
     }
 
-    // Default folder structure for all account types
+    // Default folders that would exist in most email providers
     const defaultFolders = [
       { name: 'Inbox', path: 'INBOX', type: 'inbox' },
       { name: 'Sent', path: 'SENT', type: 'sent' },
@@ -96,33 +122,16 @@ serve(async (req) => {
       { name: 'Archive', path: 'ARCHIVE', type: 'archive' }
     ];
 
-    // Provider-specific folders
-    if (account.provider === 'gmail') {
-      defaultFolders.push(
-        { name: 'Important', path: 'IMPORTANT', type: 'custom' },
-        { name: 'Starred', path: 'STARRED', type: 'custom' },
-        { name: 'Promotions', path: 'PROMOTIONS', type: 'custom' }
-      );
-    } else if (account.provider === 'outlook') {
-      defaultFolders.push(
-        { name: 'Focused', path: 'FOCUSED', type: 'custom' },
-        { name: 'Other', path: 'OTHER', type: 'custom' },
-        { name: 'Clutter', path: 'CLUTTER', type: 'custom' }
-      );
-    }
-
-    // Prepare folders for insertion
-    const foldersToUpsert = defaultFolders.map(folder => ({
+    // Build folders to insert with account_id
+    const foldersToInsert = defaultFolders.map(folder => ({
       ...folder,
-      account_id: account_id,
-      email_count: Math.floor(Math.random() * 50), // Random count for simulation
-      unread_count: Math.floor(Math.random() * 20) // Random unread count for simulation
+      account_id: account_id
     }));
 
-    // Insert folders
-    const { data: insertedFolders, error: insertError } = await supabaseClient
+    // Insert the folders
+    const { data: savedFolders, error: insertError } = await supabaseClient
       .from('email_folders')
-      .upsert(foldersToUpsert, { onConflict: 'account_id,path' })
+      .upsert(foldersToInsert, { onConflict: 'account_id,path' })
       .select();
 
     if (insertError) {
@@ -153,7 +162,7 @@ serve(async (req) => {
         .update({ 
           status: 'completed', 
           completed_at: new Date().toISOString(),
-          metadata: { ...job.metadata, folders_synced: foldersToUpsert.length }
+          metadata: { ...job.metadata, folders_synced: foldersToInsert.length }
         })
         .eq('id', job.id);
     }
@@ -161,8 +170,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        count: foldersToUpsert.length,
-        message: `Successfully synced ${foldersToUpsert.length} folders` 
+        count: foldersToInsert.length,
+        message: `Successfully synced ${foldersToInsert.length} folders` 
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -171,8 +180,8 @@ serve(async (req) => {
     console.error('Sync folders error:', error);
     
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
-})
+});

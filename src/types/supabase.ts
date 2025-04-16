@@ -1,4 +1,3 @@
-
 import { Database as GeneratedDatabase } from '@/integrations/supabase/types';
 
 // Extend the generated database types with our custom tables
@@ -69,7 +68,15 @@ export interface Database extends GeneratedDatabase {
           created_at?: string;
           updated_at?: string | null;
         };
-        Relationships: []; // Added this to match the generated interface
+        Relationships: [
+          {
+            foreignKeyName: "background_jobs_account_id_fkey";
+            columns: ["account_id"];
+            isOneToOne: false;
+            referencedRelation: "email_accounts";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       email_folders: {
         Row: {
@@ -105,7 +112,7 @@ export interface Database extends GeneratedDatabase {
           created_at?: string;
           updated_at?: string | null;
         };
-        Relationships: []; // Added this to match the generated interface
+        Relationships: [];
       };
       emails: {
         Row: {
@@ -165,7 +172,7 @@ export interface Database extends GeneratedDatabase {
           created_at?: string | null;
           updated_at?: string | null;
         };
-        Relationships: []; // Added this to match the generated interface
+        Relationships: [];
       };
       background_jobs: {
         Row: {
@@ -210,7 +217,15 @@ export interface Database extends GeneratedDatabase {
           next_run_at?: string | null;
           schedule?: string | null;
         };
-        Relationships: []; // Added this to match the generated interface
+        Relationships: [
+          {
+            foreignKeyName: "background_jobs_account_id_fkey";
+            columns: ["account_id"];
+            isOneToOne: false;
+            referencedRelation: "email_accounts";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       user_roles: {
         Row: {
@@ -228,7 +243,7 @@ export interface Database extends GeneratedDatabase {
           user_id?: string;
           role?: string;
         };
-        Relationships: []; // Added this to match the generated interface
+        Relationships: [];
       };
       user_admin_relationships: {
         Row: {
@@ -249,7 +264,7 @@ export interface Database extends GeneratedDatabase {
           user_id?: string;
           created_at?: string;
         };
-        Relationships: []; // Added this to match the generated interface
+        Relationships: [];
       };
       oauth_configurations: {
         Row: {
@@ -279,7 +294,7 @@ export interface Database extends GeneratedDatabase {
           created_at?: string;
           updated_at?: string;
         };
-        Relationships: []; // Added this to match the generated interface
+        Relationships: [];
       };
       system_logs: {
         Row: {

@@ -31,6 +31,7 @@ serve(async (req) => {
     } = await supabaseClient.auth.getUser();
 
     if (userError) {
+      console.error("Auth error:", userError);
       return new Response(
         JSON.stringify({ error: 'Unauthorized: ' + userError.message }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -38,6 +39,7 @@ serve(async (req) => {
     }
 
     if (!user) {
+      console.error("No user found");
       return new Response(
         JSON.stringify({ error: 'User not authenticated' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -45,14 +47,28 @@ serve(async (req) => {
     }
 
     // Parse the request body
-    const { account_id } = await req.json() as SyncEmailsRequest;
+    let requestData: SyncEmailsRequest;
+    try {
+      requestData = await req.json() as SyncEmailsRequest;
+    } catch (error) {
+      console.error("Failed to parse request body:", error);
+      return new Response(
+        JSON.stringify({ error: 'Invalid request format' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { account_id } = requestData;
 
     if (!account_id) {
+      console.error("Missing account_id in request");
       return new Response(
         JSON.stringify({ error: 'Missing account_id in request body' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log(`Processing sync for account: ${account_id}, user: ${user.id}`);
 
     // Verify the user owns this account
     const { data: account, error: accountError } = await supabaseClient
@@ -62,18 +78,32 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single();
 
-    if (accountError || !account) {
+    if (accountError) {
+      console.error(`Account error: ${accountError.message}, Code: ${accountError.code}`);
       return new Response(
         JSON.stringify({ error: 'Account not found or not owned by user' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    if (!account) {
+      console.error("Account not found");
+      return new Response(
+        JSON.stringify({ error: 'Account not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Update the last_synced timestamp
-    await supabaseClient
+    const { error: updateError } = await supabaseClient
       .from('email_accounts')
       .update({ last_synced: new Date().toISOString() })
       .eq('id', account_id);
+
+    if (updateError) {
+      console.error("Error updating last_synced:", updateError);
+      // Non-critical error, continue with sync
+    }
 
     // Create a background job for this sync operation
     const { data: job, error: jobError } = await supabaseClient
@@ -90,7 +120,40 @@ serve(async (req) => {
 
     if (jobError) {
       console.error('Error creating job:', jobError);
+      // Non-critical error, continue with sync
     }
+
+    // Get the folder ID for inbox
+    const { data: inboxFolder, error: folderError } = await supabaseClient
+      .from('email_folders')
+      .select('id')
+      .eq('account_id', account_id)
+      .eq('type', 'inbox')
+      .single();
+
+    if (folderError && folderError.code !== 'PGRST116') {
+      console.error("Error fetching inbox folder:", folderError);
+      // Create the inbox folder if it doesn't exist
+      const { data: newFolder, error: createFolderError } = await supabaseClient
+        .from('email_folders')
+        .insert({
+          account_id: account_id,
+          name: 'Inbox',
+          path: 'INBOX',
+          type: 'inbox'
+        })
+        .select()
+        .single();
+        
+      if (createFolderError) {
+        console.error("Error creating inbox folder:", createFolderError);
+      } else {
+        console.log("Created new inbox folder:", newFolder);
+      }
+    }
+
+    // For simulation purposes, let's use the inbox folder ID if available, otherwise use null
+    let folderId = inboxFolder?.id || null;
 
     // Simulate fetching emails from the email provider
     // In a real implementation, this would connect to the email provider's API
@@ -126,19 +189,6 @@ serve(async (req) => {
         content: '<p>For security reasons, we recommend updating your password regularly.</p>'
       }
     ];
-
-    // Get the folder ID for inbox
-    const { data: inboxFolder } = await supabaseClient
-      .from('email_folders')
-      .select('id')
-      .eq('account_id', account_id)
-      .eq('type', 'inbox')
-      .single();
-
-    let folderId = null;
-    if (inboxFolder) {
-      folderId = inboxFolder.id;
-    }
 
     // Insert the simulated emails
     const emailsToInsert = simulatedEmails.map(email => ({
@@ -198,8 +248,8 @@ serve(async (req) => {
     console.error('Sync emails error:', error);
     
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
-})
+});
