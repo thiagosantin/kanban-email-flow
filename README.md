@@ -1,268 +1,118 @@
 
 # Email Sync System
 
-Este é um sistema de sincronização de emails com interface web que permite gerenciar múltiplas contas de email.
+Sistema de sincronização de emails com interface web para gerenciar múltiplas contas de email.
 
-## URL do Projeto
-
-**URL**: https://lovable.dev/projects/1460e44b-593c-40c9-bc59-c07ed0c0795b
-
-## Requisitos do Sistema
+## Ambiente de Desenvolvimento
 
 - Node.js 18+
 - npm 9+
-- PostgreSQL 14+ (apenas para instalação direta, não necessário para Docker)
-- Supabase (para autenticação e armazenamento de dados)
+- PostgreSQL 14+ (apenas para instalação direta)
+- Supabase (autenticação e dados)
+
+## Instalação
+
+Escolha um dos métodos de instalação abaixo:
+
+### Método 1: Docker com Traefik (Recomendado)
+
+1. **Pré-requisitos**
+   ```bash
+   # Instalar Docker e Docker Compose
+   curl -fsSL https://get.docker.com | sudo sh
+   sudo curl -L "https://github.com/docker/compose/releases/download/v2.15.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+   sudo chmod +x /usr/local/bin/docker-compose
+   ```
+
+2. **Configuração**
+   ```bash
+   # Criar rede do Traefik
+   docker network create traefik-public
+
+   # Clonar repositório
+   git clone <URL_DO_REPOSITORIO>
+   cd <NOME_DO_DIRETORIO>
+
+   # Criar pasta para certificados
+   mkdir -p letsencrypt
+   ```
+
+3. **Configurar Variáveis**
+   - Edite `docker-compose.yml`:
+     - Substitua `your-email@example.com` pelo seu email
+     - Substitua `your-domain.com` pelo seu domínio
+     - Configure as variáveis do Supabase
+
+4. **Iniciar Aplicação**
+   ```bash
+   docker-compose up -d
+   ```
+
+### Método 2: Instalação Direta (Ubuntu Server)
+
+1. **Preparar Ambiente**
+   ```bash
+   # Atualizar sistema
+   sudo apt update && sudo apt upgrade -y
+
+   # Instalar Node.js
+   curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+   sudo apt install -y nodejs nginx git
+
+   # Verificar instalação
+   node -v
+   npm -v
+   ```
+
+2. **Configurar Aplicação**
+   ```bash
+   # Clonar e instalar
+   git clone <URL_DO_REPOSITORIO>
+   cd <NOME_DO_DIRETORIO>
+   npm install
+
+   # Configurar variáveis
+   echo "SUPABASE_URL=sua_url_do_supabase
+   SUPABASE_ANON_KEY=sua_chave_anonima_do_supabase" > .env
+
+   # Compilar
+   npm run build
+   ```
+
+3. **Configurar Nginx**
+   ```bash
+   sudo nano /etc/nginx/sites-available/emailsync
+   ```
+   
+   Adicionar configuração:
+   ```nginx
+   server {
+       listen 80;
+       server_name seu_dominio.com;
+       root /caminho/para/seu/projeto/dist;
+       
+       location / {
+           try_files $uri $uri/ /index.html;
+       }
+
+       location /assets {
+           expires 1y;
+           add_header Cache-Control "public, no-transform";
+       }
+   }
+   ```
+
+   ```bash
+   sudo ln -s /etc/nginx/sites-available/emailsync /etc/nginx/sites-enabled/
+   sudo nginx -t
+   sudo systemctl restart nginx
+   ```
+
+## Manutenção
 
-## Instalação em Ubuntu Server (VPS)
+### Atualizações
 
-### 1. Atualizar o Sistema
-
-```bash
-sudo apt update
-sudo apt upgrade -y
-```
-
-### 2. Instalar Dependências
-
-```bash
-# Instalar Node.js e npm
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Verificar instalação
-node -v
-npm -v
-
-# Instalar o Git
-sudo apt install git -y
-
-# Instalar o Nginx
-sudo apt install nginx -y
-sudo systemctl enable nginx
-sudo systemctl start nginx
-```
-
-### 3. Clonar o Repositório
-
-```bash
-git clone <URL_DO_REPOSITORIO>
-cd <NOME_DO_DIRETORIO>
-```
-
-### 4. Instalar Dependências do Projeto
-
-```bash
-npm install
-```
-
-### 5. Configurar Variáveis de Ambiente
-
-Crie um arquivo `.env` na raiz do projeto:
-
-```
-SUPABASE_URL=sua_url_do_supabase
-SUPABASE_ANON_KEY=sua_chave_anonima_do_supabase
-```
-
-### 6. Compilar o Projeto
-
-```bash
-npm run build
-```
-
-### 7. Configurar o Nginx
-
-Crie um arquivo de configuração para o Nginx:
-
-```bash
-sudo nano /etc/nginx/sites-available/emailsync
-```
-
-Adicione a seguinte configuração:
-
-```nginx
-server {
-    listen 80;
-    server_name seu_dominio.com;
-    root /caminho/para/seu/projeto/dist;
-    index index.html;
-    
-    # Gzip compression
-    gzip on;
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
-    
-    # Handle React Router
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Cache static assets
-    location /assets {
-        expires 1y;
-        add_header Cache-Control "public, no-transform";
-    }
-}
-```
-
-Ative a configuração e reinicie o Nginx:
-
-```bash
-sudo ln -s /etc/nginx/sites-available/emailsync /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl restart nginx
-```
-
-### 8. Configurar o Processo como Serviço (Opcional)
-
-Para manter a aplicação rodando, você pode usar o PM2:
-
-```bash
-# Instalar o PM2 globalmente
-sudo npm install -g pm2
-
-# Iniciar a aplicação
-pm2 start npm --name "emailsync" -- run preview
-
-# Configurar para iniciar automaticamente
-pm2 startup
-pm2 save
-```
-
-## Instalação com Docker e Traefik
-
-### 1. Instalar Docker e Docker Compose
-
-```bash
-# Instalar dependências
-sudo apt update
-sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
-
-# Adicionar chave GPG oficial do Docker
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-
-# Adicionar repositório do Docker
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-# Atualizar e instalar Docker
-sudo apt update
-sudo apt install -y docker-ce docker-ce-cli containerd.io
-
-# Instalar Docker Compose
-sudo curl -L "https://github.com/docker/compose/releases/download/v2.15.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
-
-# Verificar instalações
-docker --version
-docker-compose --version
-
-# Adicionar seu usuário ao grupo docker (para executar comandos sem sudo)
-sudo usermod -aG docker ${USER}
-```
-
-### 2. Configurar Traefik
-
-Antes de iniciar, crie uma rede pública para o Traefik:
-
-```bash
-docker network create traefik-public
-```
-
-### 3. Clonar o Repositório
-
-```bash
-git clone <URL_DO_REPOSITORIO>
-cd <NOME_DO_DIRETORIO>
-```
-
-### 4. Configurar Supabase
-
-Antes de continuar, certifique-se de ter criado um projeto no Supabase e obter as credenciais necessárias (URL e ANON KEY).
-
-### 5. Configurar Variáveis de Ambiente para Docker
-
-Edite o arquivo `docker-compose.yml` para incluir suas configurações específicas:
-
-- Substitua `your-email@example.com` pela sua conta de email para notificações HTTPS/Let's Encrypt
-- Substitua `your-domain.com` pelo seu domínio real
-- Adicione as variáveis de ambiente do Supabase conforme necessário
-
-### 6. Criar a Pasta para Certificados SSL
-
-```bash
-mkdir -p letsencrypt
-```
-
-### 7. Construir e Executar os Containers
-
-```bash
-# Construir a imagem
-docker-compose build
-
-# Iniciar os containers
-docker-compose up -d
-```
-
-### 8. Verificar o Status
-
-```bash
-docker-compose ps
-```
-
-O sistema estará disponível em `https://seu-dominio.com` (substituindo pelo seu domínio real).
-
-## Verificação da Instalação
-
-Para verificar se a instalação está funcionando corretamente:
-
-1. Acesse a aplicação através do navegador
-2. Faça login com suas credenciais
-3. Verifique se pode adicionar uma conta de email e sincronizá-la
-
-## Solução de Problemas
-
-### Logs do Docker
-
-Para verificar os logs do container Docker:
-
-```bash
-# Ver todos os logs
-docker-compose logs -f
-
-# Ver logs de um serviço específico
-docker-compose logs -f web
-docker-compose logs -f traefik
-```
-
-### Certificados SSL
-
-Se houver problemas com os certificados SSL:
-
-```bash
-# Verificar os logs do Traefik
-docker-compose logs -f traefik
-
-# Verificar o arquivo de certificados
-sudo cat letsencrypt/acme.json
-```
-
-### Firewall
-
-Certifique-se de que as portas necessárias estão abertas:
-
-```bash
-# Para instalação com Docker e Traefik, abrir portas 80 e 443
-sudo ufw allow 80
-sudo ufw allow 443
-
-# Verificar status do firewall
-sudo ufw status
-```
-
-## Atualização do Sistema
-
-### Usando Docker
-
+Com Docker:
 ```bash
 git pull
 docker-compose down
@@ -270,10 +120,32 @@ docker-compose build
 docker-compose up -d
 ```
 
-## Backups
+Instalação direta:
+```bash
+git pull
+npm install
+npm run build
+sudo systemctl restart nginx
+```
 
-É recomendado realizar backups regulares do banco de dados Supabase. Consulte a documentação do Supabase para mais informações sobre backups.
+### Monitoramento
+
+```bash
+# Logs Docker
+docker-compose logs -f [serviço]
+
+# Status Nginx
+sudo systemctl status nginx
+
+# Verificar portas
+sudo netstat -tulpn | grep '80\|443'
+```
+
+### Backup
+
+Realize backups regulares do banco de dados Supabase através do painel de controle.
 
 ## Suporte
 
-Para obter suporte, entre em contato através de [inserir contato de suporte aqui].
+Para suporte técnico, entre em contato através de [inserir contato].
+
