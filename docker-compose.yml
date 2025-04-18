@@ -2,12 +2,45 @@
 version: '3.8'
 
 services:
-  web:
-    build: .
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=your-email@example.com"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+    networks:
+      - traefik-public
+
+  web:
+    build: .
     restart: unless-stopped
     environment:
       # Override Supabase connection parameters here if needed
       # - SUPABASE_URL=your-supabase-url
       # - SUPABASE_ANON_KEY=your-supabase-anon-key
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.emailsync.rule=Host(`your-domain.com`)"
+      - "traefik.http.routers.emailsync.entrypoints=websecure"
+      - "traefik.http.routers.emailsync.tls.certresolver=myresolver"
+      - "traefik.http.services.emailsync.loadbalancer.server.port=80"
+    networks:
+      - traefik-public
+
+networks:
+  traefik-public:
+    external: true

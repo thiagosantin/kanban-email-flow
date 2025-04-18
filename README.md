@@ -129,7 +129,7 @@ pm2 startup
 pm2 save
 ```
 
-## Instalação com Docker
+## Instalação com Docker e Traefik
 
 ### 1. Instalar Docker e Docker Compose
 
@@ -160,28 +160,40 @@ docker-compose --version
 sudo usermod -aG docker ${USER}
 ```
 
-### 2. Clonar o Repositório
+### 2. Configurar Traefik
+
+Antes de iniciar, crie uma rede pública para o Traefik:
+
+```bash
+docker network create traefik-public
+```
+
+### 3. Clonar o Repositório
 
 ```bash
 git clone <URL_DO_REPOSITORIO>
 cd <NOME_DO_DIRETORIO>
 ```
 
-### 3. Configurar Supabase
+### 4. Configurar Supabase
 
 Antes de continuar, certifique-se de ter criado um projeto no Supabase e obter as credenciais necessárias (URL e ANON KEY).
 
-### 4. Configurar Variáveis de Ambiente para Docker
+### 5. Configurar Variáveis de Ambiente para Docker
 
-Caso necessário, modifique o arquivo `docker-compose.yml` para incluir suas variáveis de ambiente do Supabase:
+Edite o arquivo `docker-compose.yml` para incluir suas configurações específicas:
 
-```yaml
-environment:
-  - SUPABASE_URL=sua_url_do_supabase
-  - SUPABASE_ANON_KEY=sua_chave_anonima_do_supabase
+- Substitua `your-email@example.com` pela sua conta de email para notificações HTTPS/Let's Encrypt
+- Substitua `your-domain.com` pelo seu domínio real
+- Adicione as variáveis de ambiente do Supabase conforme necessário
+
+### 6. Criar a Pasta para Certificados SSL
+
+```bash
+mkdir -p letsencrypt
 ```
 
-### 5. Construir e Executar o Container
+### 7. Construir e Executar os Containers
 
 ```bash
 # Construir a imagem
@@ -191,9 +203,13 @@ docker-compose build
 docker-compose up -d
 ```
 
-### 6. Acessar a Aplicação
+### 8. Verificar o Status
 
-A aplicação estará disponível em `http://localhost` ou no IP do seu servidor.
+```bash
+docker-compose ps
+```
+
+O sistema estará disponível em `https://seu-dominio.com` (substituindo pelo seu domínio real).
 
 ## Verificação da Instalação
 
@@ -210,16 +226,24 @@ Para verificar se a instalação está funcionando corretamente:
 Para verificar os logs do container Docker:
 
 ```bash
+# Ver todos os logs
 docker-compose logs -f
+
+# Ver logs de um serviço específico
+docker-compose logs -f web
+docker-compose logs -f traefik
 ```
 
-### Nginx
+### Certificados SSL
 
-Para verificar os logs do Nginx:
+Se houver problemas com os certificados SSL:
 
 ```bash
-sudo tail -f /var/log/nginx/error.log
-sudo tail -f /var/log/nginx/access.log
+# Verificar os logs do Traefik
+docker-compose logs -f traefik
+
+# Verificar o arquivo de certificados
+sudo cat letsencrypt/acme.json
 ```
 
 ### Firewall
@@ -227,7 +251,7 @@ sudo tail -f /var/log/nginx/access.log
 Certifique-se de que as portas necessárias estão abertas:
 
 ```bash
-# Para instalação direta, abrir porta 80 (e 443 para HTTPS)
+# Para instalação com Docker e Traefik, abrir portas 80 e 443
 sudo ufw allow 80
 sudo ufw allow 443
 
@@ -236,16 +260,6 @@ sudo ufw status
 ```
 
 ## Atualização do Sistema
-
-### Usando Git/NPM
-
-```bash
-git pull
-npm install
-npm run build
-# Reiniciar o serviço se estiver usando PM2
-pm2 restart emailsync
-```
 
 ### Usando Docker
 
