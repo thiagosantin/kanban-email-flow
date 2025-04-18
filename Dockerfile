@@ -30,6 +30,9 @@ RUN echo '#!/bin/sh' > /app/generate-config.sh && \
     echo 'serve -s dist -l 80' >> /app/generate-config.sh && \
     chmod +x /app/generate-config.sh
 
+# Create directory for logs
+RUN mkdir -p /app/logs && chmod 777 /app/logs
+
 # Expose port 80
 EXPOSE 80
 

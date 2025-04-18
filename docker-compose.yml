@@ -16,7 +16,7 @@ services:
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
       - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
       - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
-      - "--certificatesresolvers.myresolver.acme.email=your-email@example.com"
+      - "--certificatesresolvers.myresolver.acme.email=${TRAEFIK_EMAIL:-your-email@example.com}"
       - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
       - "--api.dashboard=true"
     ports:
@@ -28,40 +28,41 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./letsencrypt:/letsencrypt
     networks:
-      - traefik-public
+      - email-sync-network
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik-secure.entrypoints=websecure"
-      - "traefik.http.routers.traefik-secure.rule=Host(`traefik.your-domain.com`)"
-      - "traefik.http.routers.traefik-secure.middlewares=authtraefik"
-      - "traefik.http.middlewares.authtraefik.basicauth.users=admin:$$apr1$$1234567890"  # Change this
+      - "traefik.http.routers.traefik-secure.rule=Host(`${TRAEFIK_DASHBOARD_DOMAIN:-traefik.yourdomain.com}`)"
+      - "traefik.http.routers.traefik-secure.middlewares=traefik-auth"
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_DASHBOARD_USER:-admin}:${TRAEFIK_DASHBOARD_PASSWORD:-$$apr1$$1234567890}"
       - "traefik.http.routers.traefik-secure.service=api@internal"
       - "traefik.http.routers.traefik-secure.tls.certresolver=myresolver"
 
-  web:
+  email-sync:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: email-sync
     restart: unless-stopped
     environment:
       NODE_ENV: production
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.emailsync.rule=Host(`your-domain.com`)"
-      - "traefik.http.routers.emailsync.entrypoints=websecure"
-      - "traefik.http.routers.emailsync.tls.certresolver=myresolver"
-      - "traefik.http.services.emailsync.loadbalancer.server.port=80"
-      - "traefik.docker.network=traefik-public"
-    networks:
-      - traefik-public
     volumes:
       - ./logs:/app/logs
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.email-sync.rule=Host(`${APP_DOMAIN:-yourdomain.com}`)"
+      - "traefik.http.routers.email-sync.entrypoints=websecure"
+      - "traefik.http.routers.email-sync.tls.certresolver=myresolver"
+      - "traefik.http.services.email-sync.loadbalancer.server.port=80"
+      - "traefik.docker.network=email-sync-network"
+    networks:
+      - email-sync-network
     depends_on:
       - traefik
 
 networks:
-  traefik-public:
-    external: true
-
+  email-sync-network:
+    name: email-sync-network
+    external: false

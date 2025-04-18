@@ -3,149 +3,82 @@
 
 Sistema de sincronização de emails com interface web para gerenciar múltiplas contas de email.
 
-## Ambiente de Desenvolvimento
+## Requisitos
 
-- Node.js 18+
-- npm 9+
-- PostgreSQL 14+ (apenas para instalação direta)
-- Supabase (autenticação e dados)
+- Docker e Docker Compose
+- Conta Supabase (para autenticação e armazenamento de dados)
 
-## Instalação
+## Instalação Rápida
 
-Escolha um dos métodos de instalação abaixo:
+### 1. Clone o repositório
 
-### Método 1: Docker com Traefik (Recomendado)
+```bash
+git clone <URL_DO_REPOSITORIO>
+cd <NOME_DO_DIRETORIO>
+```
 
-1. **Pré-requisitos**
-   ```bash
-   # Instalar Docker e Docker Compose
-   curl -fsSL https://get.docker.com | sudo sh
-   sudo curl -L "https://github.com/docker/compose/releases/download/v2.15.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-   sudo chmod +x /usr/local/bin/docker-compose
-   ```
+### 2. Configure o arquivo .env
 
-2. **Configuração**
-   ```bash
-   # Criar rede do Traefik
-   docker network create traefik-public
+Crie um arquivo `.env` com as seguintes variáveis:
 
-   # Clonar repositório
-   git clone <URL_DO_REPOSITORIO>
-   cd <NOME_DO_DIRETORIO>
+```
+# Supabase (Obrigatório)
+SUPABASE_URL=sua_url_do_supabase
+SUPABASE_ANON_KEY=sua_chave_anonima_do_supabase
 
-   # Criar pasta para certificados
-   mkdir -p letsencrypt
-   ```
+# Traefik (Recomendado alterar)
+TRAEFIK_EMAIL=seu-email@example.com
+APP_DOMAIN=seudominio.com
+TRAEFIK_DASHBOARD_DOMAIN=traefik.seudominio.com
+TRAEFIK_DASHBOARD_USER=admin
+TRAEFIK_DASHBOARD_PASSWORD=sua_senha_criptografada  # Use htpasswd para gerar
+```
 
-3. **Configurar Variáveis**
-   - Edite `docker-compose.yml`:
-     - Substitua `your-email@example.com` pelo seu email
-     - Substitua `your-domain.com` pelo seu domínio
-     - Configure as variáveis do Supabase
+Para gerar uma senha criptografada para o dashboard do Traefik:
 
-4. **Iniciar Aplicação**
-   ```bash
-   docker-compose up -d
-   ```
+```bash
+docker run --rm httpd:alpine htpasswd -nbB admin "senha_segura" | sed -e s/\\$/\\$\\$/g
+```
 
-### Método 2: Instalação Direta (Ubuntu Server)
+### 3. Inicie os serviços
 
-1. **Preparar Ambiente**
-   ```bash
-   # Atualizar sistema
-   sudo apt update && sudo apt upgrade -y
+```bash
+mkdir -p letsencrypt
+docker compose up -d
+```
 
-   # Instalar Node.js
-   curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-   sudo apt install -y nodejs nginx git
-
-   # Verificar instalação
-   node -v
-   npm -v
-   ```
-
-2. **Configurar Aplicação**
-   ```bash
-   # Clonar e instalar
-   git clone <URL_DO_REPOSITORIO>
-   cd <NOME_DO_DIRETORIO>
-   npm install
-
-   # Configurar variáveis
-   echo "SUPABASE_URL=sua_url_do_supabase
-   SUPABASE_ANON_KEY=sua_chave_anonima_do_supabase" > .env
-
-   # Compilar
-   npm run build
-   ```
-
-3. **Configurar Nginx**
-   ```bash
-   sudo nano /etc/nginx/sites-available/emailsync
-   ```
-   
-   Adicionar configuração:
-   ```nginx
-   server {
-       listen 80;
-       server_name seu_dominio.com;
-       root /caminho/para/seu/projeto/dist;
-       
-       location / {
-           try_files $uri $uri/ /index.html;
-       }
-
-       location /assets {
-           expires 1y;
-           add_header Cache-Control "public, no-transform";
-       }
-   }
-   ```
-
-   ```bash
-   sudo ln -s /etc/nginx/sites-available/emailsync /etc/nginx/sites-enabled/
-   sudo nginx -t
-   sudo systemctl restart nginx
-   ```
+O sistema estará disponível em `https://seudominio.com` e o dashboard do Traefik em `https://traefik.seudominio.com`.
 
 ## Manutenção
 
-### Atualizações
+### Visualizar logs
 
-Com Docker:
+```bash
+docker compose logs -f email-sync
+```
+
+### Atualizar para nova versão
+
 ```bash
 git pull
-docker-compose down
-docker-compose build
-docker-compose up -d
+docker compose down
+docker compose up -d --build
 ```
 
-Instalação direta:
-```bash
-git pull
-npm install
-npm run build
-sudo systemctl restart nginx
-```
+## Solução de Problemas
 
-### Monitoramento
+1. **Certificados HTTPS não funcionam**: Verifique se seu domínio está apontando corretamente para o servidor.
 
-```bash
-# Logs Docker
-docker-compose logs -f [serviço]
+2. **Problemas de conexão com Supabase**: Verifique as credenciais no arquivo `.env`.
 
-# Status Nginx
-sudo systemctl status nginx
+3. **Erro ao sincronizar emails**: Verifique os logs com `docker compose logs -f email-sync`.
 
-# Verificar portas
-sudo netstat -tulpn | grep '80\|443'
-```
+## Segurança
 
-### Backup
-
-Realize backups regulares do banco de dados Supabase através do painel de controle.
+- O dashboard do Traefik é protegido por autenticação básica.
+- HTTPS é configurado automaticamente com Let's Encrypt.
+- As credenciais do Supabase são injetadas no ambiente em tempo de execução.
 
 ## Suporte
 
 Para suporte técnico, entre em contato através de [inserir contato].
-
